@@ -143,10 +143,12 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     }
     await tokenStorage.write(key: biometricFlagKey,
       value: enabled ? '1' : '0');
-    if (mounted) setState(() {
-      biometricsEnabled = enabled;
-      canBiometricLogin = enabled && api.token != null;
-    });
+    if (mounted) {
+      setState(() {
+        biometricsEnabled = enabled;
+        canBiometricLogin = enabled && api.token != null;
+      });
+    }
   }
 
   Future<void> _fetchCurrentUser() async {
@@ -184,7 +186,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     } catch (_) {
       error = 'Could not restore the session. Sign in or retry fingerprint.';
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -209,7 +213,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     } catch (_) {
       error = 'Network problem. You can retry fingerprint or sign in.';
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -234,7 +240,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     } catch (requestError) {
       error = '$requestError';
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -275,13 +283,33 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
       colorScheme: ColorScheme.fromSeed(seedColor: BmColors.blue),
       scaffoldBackgroundColor: BmColors.background,
       appBarTheme: const AppBarTheme(backgroundColor: Colors.white,
-        foregroundColor: BmColors.navy, elevation: 0, centerTitle: false),
+        foregroundColor: BmColors.navy, elevation: 0, centerTitle: false,
+        titleTextStyle: TextStyle(color: BmColors.navy,
+          fontSize: 19, fontWeight: FontWeight.w800)),
+      cardTheme: CardThemeData(
+        color: Colors.white, elevation: 1,
+        shadowColor: BmColors.navy.withValues(alpha: .10),
+        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(19),
+          side: const BorderSide(color: Color(0xFFE7EBF5)))),
+      filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
+        backgroundColor: BmColors.blue, foregroundColor: Colors.white,
+        minimumSize: const Size(0, 45),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)))),
+      outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
+        foregroundColor: BmColors.blue, minimumSize: const Size(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)))),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: BmColors.blue, foregroundColor: Colors.white),
       pageTransitionsTheme: const PageTransitionsTheme(builders: {
         TargetPlatform.android: ZoomPageTransitionsBuilder(),
         TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
       }),
       inputDecorationTheme: InputDecorationTheme(
+        filled: true, fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFDEE5F2))),
       ),
     ),
     home: loading
