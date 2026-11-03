@@ -559,8 +559,10 @@ class _BmSettingsState extends State<BmSettings> {
         setState(() => enabled = next);
       }
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$error')));
+      }
     } finally {
       if (mounted) {
         setState(() => busy = false);
