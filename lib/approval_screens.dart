@@ -117,6 +117,7 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
   Future<Map<String, dynamic>>? detail;
   Future<Map<String, dynamic>>? preview;
   bool sending = false;
+  bool previewReviewed = false;
   String? failure;
   @override
   void initState() {
@@ -213,6 +214,13 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
           if (failure != null) Padding(padding: const EdgeInsets.all(10),
             child: Text(failure!, style: const TextStyle(color: Colors.red))),
           if (widget.canAct && approval['status'] == 'pending')
+            CheckboxListTile(
+              title: const Text('I reviewed the changes above'),
+              subtitle: const Text('Required before a live approval decision'),
+              value: previewReviewed,
+              onChanged: (value) => setState(() => previewReviewed = value ?? false),
+            ),
+          if (widget.canAct && approval['status'] == 'pending' && previewReviewed)
             Row(children: [
               Expanded(child: OutlinedButton(
                 onPressed: sending ? null : () => submit('reject'),
