@@ -6,7 +6,9 @@ String displayLeadName(Map<String, dynamic> lead) =>
         .map((v) => v.toString()).join(' ');
 
 String? validateMobile(String? text) {
-  if (text == null || text.trim().isEmpty) return null;
+  if (text == null || text.trim().isEmpty) {
+    return null;
+  }
   return RegExp(r'^[0-9]{11}$').hasMatch(text.trim()) ? null : 'Use 11 digits';
 }
 
@@ -30,20 +32,26 @@ class _CrmScreenState extends State<CrmScreen> {
   @override
   void dispose() { search.dispose(); super.dispose(); }
   void load({bool reset = false}) {
-    if (reset) page = 1;
+    if (reset) {
+      page = 1;
+    }
     data = widget.api.call('GET', 'crm/leads', query: {
       'project_id': widget.projectId.toString(), 'page': page.toString(),
       'per_page': '20', 'sort_by': 'follow_up',
       if (search.text.trim().isNotEmpty) 'search': search.text.trim(),
       if (status != 'all') 'status': status,
     });
-    if (mounted) setState(() {});
+    if (mounted) setState(() {
+      {});
+    }
   }
   Future<void> create() async {
     final saved = await Navigator.push<bool>(context, MaterialPageRoute(
       builder: (_) => LeadForm(api: widget.api, projectId: widget.projectId),
     ));
-    if (saved == true) load(reset: true);
+    if (saved == true) {
+      load(reset: true);
+    }
   }
 
   @override
@@ -78,8 +86,12 @@ class _CrmScreenState extends State<CrmScreen> {
       Expanded(child: FutureBuilder<Map<String, dynamic>>(
         future: data,
         builder: (context, snap) {
-          if (snap.hasError) return _Problem(message: snap.error.toString(), retry: load);
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          if (snap.hasError) {
+            return _Problem(message: snap.error.toString(), retry: load);
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final leads = listOf(snap.data!['data']).map(objectOf).toList();
           final meta = objectOf(snap.data!['meta']);
           final last = numberOf(meta['last_page']) ?? 1;
@@ -91,7 +103,9 @@ class _CrmScreenState extends State<CrmScreen> {
               child: ListView.builder(
                 itemCount: leads.isEmpty ? 1 : leads.length,
                 itemBuilder: (context, index) {
-                  if (leads.isEmpty) return const ListTile(title: Text('No leads found.'));
+                  if (leads.isEmpty) {
+                    return const ListTile(title: Text('No leads found.'));
+                  }
                   final lead = leads[index];
                   final id = numberOf(lead['id']);
                   return Card(child: ListTile(
@@ -139,7 +153,9 @@ class _LeadDetailState extends State<LeadDetail> {
   void initState() { super.initState(); load(); }
   void load() {
     data = widget.api.call('GET', 'crm/leads/${widget.id}');
-    if (mounted) setState(() {});
+    if (mounted) setState(() {
+      {});
+    }
   }
   Future<void> form(Map<String, dynamic> lead, {bool followUp = false}) async {
     final saved = await Navigator.push<bool>(context, MaterialPageRoute(
@@ -147,7 +163,9 @@ class _LeadDetailState extends State<LeadDetail> {
           ? FollowUpForm(api: widget.api, id: widget.id)
           : LeadForm(api: widget.api, projectId: widget.projectId, lead: lead),
     ));
-    if (saved == true) load();
+    if (saved == true) {
+      load();
+    }
   }
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -155,8 +173,12 @@ class _LeadDetailState extends State<LeadDetail> {
     body: FutureBuilder<Map<String, dynamic>>(
       future: data,
       builder: (context, snap) {
-        if (snap.hasError) return _Problem(message: snap.error.toString(), retry: load);
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (snap.hasError) {
+          return _Problem(message: snap.error.toString(), retry: load);
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final lead = objectOf(snap.data!['data']);
         return ListView(padding: const EdgeInsets.all(16), children: [
           Text(displayLeadName(lead), style: Theme.of(context).textTheme.headlineSmall),
@@ -192,10 +214,16 @@ class LeadHistory extends StatelessWidget {
     body: FutureBuilder<Map<String, dynamic>>(
       future: api.call('GET', 'crm/leads/$id/history'),
       builder: (context, snap) {
-        if (snap.hasError) return Center(child: Text(snap.error.toString()));
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (snap.hasError) {
+          return Center(child: Text(snap.error.toString()));
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final items = listOf(snap.data!['data']).map(objectOf).toList();
-        if (items.isEmpty) return const Center(child: Text('No history found.'));
+        if (items.isEmpty) {
+          return const Center(child: Text('No history found.'));
+        }
         return ListView.builder(
           itemCount: items.length,
           itemBuilder: (context, i) => Card(child: ListTile(
@@ -234,13 +262,19 @@ class _LeadFormState extends State<LeadForm> {
     final d = await showDatePicker(context: context,
       initialDate: followUp ?? DateTime.now(),
       firstDate: DateTime(2020), lastDate: DateTime(2100));
-    if (d != null) setState(() => followUp = d);
+    if (d != null) setState(() {
+      => followUp = d);
+    }
   }
   Future<void> save() async {
-    if (!form.currentState!.validate()) return;
+    if (!form.currentState!.validate()) {
+      return;
+    }
     if (!await confirmChange(context, widget.lead == null
         ? 'Create this lead?' : 'Update this lead?')) return;
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     setState(() { busy = true; error = null; });
     final body = <String, dynamic>{
       'first_name': fields['first_name']!.text.trim(),
@@ -257,11 +291,17 @@ class _LeadFormState extends State<LeadForm> {
       final id = numberOf(widget.lead?['id']);
       await widget.api.call(id == null ? 'POST' : 'PUT',
         id == null ? 'crm/leads' : 'crm/leads/$id', data: body);
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      if (mounted) setState(() => error = e.toString());
+      if (mounted) setState(() {
+        => error = e.toString());
+      }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) setState(() {
+        => busy = false);
+      }
     }
   }
   Widget entry(String key, String label, {bool required = false, int? length}) =>
@@ -271,8 +311,12 @@ class _LeadFormState extends State<LeadForm> {
         maxLines: key == 'remarks' ? 3 : 1,
         decoration: InputDecoration(labelText: label),
         validator: (value) {
-          if (required && (value?.trim().isEmpty ?? true)) return 'Required';
-          if (key == 'mobile_number') return validateMobile(value);
+          if (required && (value?.trim().isEmpty ?? true)) {
+            return 'Required';
+          }
+          if (key == 'mobile_number') {
+            return validateMobile(value);
+          }
           return null;
         },
       ),
@@ -310,18 +354,30 @@ class _FollowUpFormState extends State<FollowUpForm> {
   @override
   void dispose() { notes.dispose(); super.dispose(); }
   Future<void> save() async {
-    if (!await confirmChange(context, 'Record this follow-up?')) return;
-    if (!mounted) return;
+    if (!await confirmChange(context, 'Record this follow-up?')) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() { busy = true; error = null; });
     try {
       await widget.api.call('POST', 'crm/leads/${widget.id}/follow-up',
         data: {'follow_up_date': isoDate(date),
-          if (notes.text.trim().isNotEmpty) 'remarks': notes.text.trim()});
-      if (mounted) Navigator.pop(context, true);
+          if (notes.text.trim().isNotEmpty) {
+            'remarks': notes.text.trim()});
+          }
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      if (mounted) setState(() => error = e.toString());
+      if (mounted) setState(() {
+        => error = e.toString());
+      }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) setState(() {
+        => busy = false);
+      }
     }
   }
   @override
@@ -333,7 +389,9 @@ class _FollowUpFormState extends State<FollowUpForm> {
         onPressed: () async {
           final d = await showDatePicker(context: context,
             initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
-          if (d != null) setState(() => date = d);
+          if (d != null) setState(() {
+            => date = d);
+          }
         },
       ),
       TextField(controller: notes, maxLines: 4,
