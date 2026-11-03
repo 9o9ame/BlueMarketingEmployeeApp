@@ -255,6 +255,11 @@ class _BmDashboardState extends State<BmDashboard> {
             _drawerItem(Icons.access_time_rounded, 'Attendance', () {
               Navigator.pop(context); widget.onAttendance();
             }),
+            _drawerItem(Icons.notifications_none_rounded, 'Notifications', () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                BmSlideRoute<void>(page: const TaskNotificationsScreen()));
+            }),
             for (final item in widget.modules)
               _drawerItem(item.icon, item.title, () {
                 Navigator.pop(context); widget.onModule(item);
