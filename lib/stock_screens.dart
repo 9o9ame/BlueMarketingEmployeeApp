@@ -65,7 +65,7 @@ class _StockRecordsState extends State<StockRecords> {
   int page = 1;
   String flow = 'all';
   Future<Map<String, dynamic>>? result;
-  bool get isReport => widget.path == 'stock/report';
+  bool get isReport => widget.path == 'stock/report' || widget.path == 'reports/inventory';
 
   @override
   void initState() { super.initState(); load(); }
