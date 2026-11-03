@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
+import 'stock_entry_form.dart';
 
 class StockWorkspace extends StatelessWidget {
-  const StockWorkspace({super.key, required this.api, required this.projectId});
+  const StockWorkspace({super.key, required this.api, required this.projectId, required this.canWrite});
   final ApiClient api;
   final int projectId;
+  final bool canWrite;
 
   void open(BuildContext context, String path, String title) {
     Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
@@ -18,6 +20,22 @@ class StockWorkspace extends StatelessWidget {
       const Card(child: ListTile(leading: Icon(Icons.info_outline),
         title: Text('Company-wide stock'),
         subtitle: Text('Backend stock balances and movements are global, not per-project.'))),
+      if (canWrite)
+        for (final flow in const ['IN', 'OUT'])
+          Card(child: ListTile(
+            leading: Icon(flow == 'IN' ? Icons.add_circle_outline : Icons.remove_circle_outline),
+            title: Text('Stock $flow'),
+            subtitle: const Text('Create a verified stock movement'),
+            onTap: () async {
+              final saved = await Navigator.push<bool>(context,
+                MaterialPageRoute(builder: (_) => StockEntryForm(
+                  api: api, projectId: projectId, flow: flow)));
+              if (saved == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Stock transaction recorded.')));
+              }
+            },
+          )),
       for (final item in const [
         ('stock/items', 'Stock items', Icons.inventory_2_outlined),
         ('stock/parties', 'Suppliers and consumers', Icons.groups_outlined),
