@@ -12,16 +12,20 @@ class EmployeeDashboardMetrics extends StatelessWidget {
     future: api.call('GET', 'dashboard',
       query: {'project_id': projectId.toString()}),
     builder: (context, snapshot) {
-      if (snapshot.hasError) return Card(child: ListTile(
+      if (snapshot.hasError) {
+        return Card(child: ListTile(
         leading: const Icon(Icons.info_outline),
         title: const Text('Dashboard summary unavailable'),
         subtitle: Text('${snapshot.error}', maxLines: 2),
-      ));
+        ));
+      }
       if (!snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
       }
       final crm = objectOf(objectOf(snapshot.data!['data'])['crm']);
-      if (crm.isEmpty) return const SizedBox.shrink();
+      if (crm.isEmpty) {
+        return const SizedBox.shrink();
+      }
       return Row(children: [
         Expanded(child: Card(child: Padding(
           padding: const EdgeInsets.all(16),
