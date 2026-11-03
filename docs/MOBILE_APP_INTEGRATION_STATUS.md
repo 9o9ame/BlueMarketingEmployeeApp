@@ -83,3 +83,37 @@ Testing: unit tests added; no local Flutter SDK available to run tests in GitHub
 User's Windows Flutter checks found 26 analyzer issues, primarily cascading from a malformed CRM follow-up request-map collection-if created by an automated brace rewrite. The source has been corrected to use a valid collection-if with a trailing comma. The one-line CRM confirmation conditional now uses braces, and approval/labour text-concatenation warnings were addressed. Because many errors were cascading, their count is not the number of independent root causes.
 
 Next local gate: `git pull --ff-only origin main`, then `flutter analyze` and `flutter test`. Do not build APK until these pass. Existing saved formatting stash can remain stashed. GitHub connector does not execute the Windows Flutter SDK, so local validation is still required.
+
+## Consolidated completion batch — November 3, 2026
+
+Prior Windows verification at commit `6957e101`: `flutter analyze` clean and 16/16 tests passed. The changes below are **new and still require local Flutter validation**.
+
+### New Flutter implementations
+- `lib/stock_entry_form.dart`: authenticated stock IN/OUT form with server-provided active item/party selectors, date, quantity, PKR rate, optional vehicle/driver/reason, explicit high-risk accounting confirmation, and server-side stock permission/availability checks. Currently supports one item line per submission; backend supports multiple lines.
+- **Currency correctness:** Laravel converts `lines.*.rate` to minor units via integer rounding. Mobile PKR entry is converted to integer paisa before posting; unit regression tests added.
+- `lib/labour_bulk.dart`: multi-worker date-specific present/absent attendance with user-configurable hours, selective submission, page navigation for more than 100 workers and explicit confirmation. Server controls duplicate updates and project membership.
+- `lib/labour_payment_report.dart`: date-filtered **read-only** unpaid labour payment summary; mapping to controller `data.items`.
+- `lib/project_reports.dart`: per-project read-only project summary, plots, bookings, recovery totals and customers with pagination, search and appropriate filters. Child screens use Laravel role/permission checks.
+- `lib/dashboard_metrics.dart`: CRM lead totals and today's follow-ups from `GET /api/v1/mobile/dashboard`. Server returns `null` for other dashboard metrics; UI does not fabricate them.
+- Inventory report uses the dedicated stock report renderer; stock balances remain global per current Laravel schema.
+- Approvals require successful nonempty server diff preview plus user acknowledgement before allowing approve/reject.
+- `test/mobile_api_contract_test.dart`: mock HTTP request paths, headers, Sanctum token, HTTPS refusal, and server-error handling. `test/integration_forms_test.dart`: quantity, rate/currency and date validation.
+
+### Actual server-contract caveats
+- Mobile SDK tests have NOT been run in this GitHub-only environment; no actual login credentials or device connectivity were used.
+- Existing Laravel stock ledger posting has financial effects, so do not use stock writes on real customer data during initial QA.
+- The backend does not currently provide an exposed mobile push notification feed; creating a fake notification system would be misleading.
+- CRM assignment requires a trustworthy server-provided assignable-users list; the mobile routes currently inspected do not expose that list.
+- Advanced end-to-end QA for approvals, payments, role matrices, stock balances, multiple projects, and device biometrics is still required. App is **not yet certified production-ready**.
+- Complete multi-line stock transactions, sophisticated charts, exports, offline workflows, notification services, richer designs and store release/signing remain separate future work.
+
+### Local Windows verification BEFORE any APK
+```powershell
+cd D:\Projects\BlueMarketingEmployeeApp
+git status --short
+git pull --ff-only origin main
+dart format lib test
+flutter analyze
+flutter test
+```
+Preserve old CRM-formatting stash. Local `pubspec.yaml`, Android native project and dependency lockfile should be committed to the standalone Flutter repo after verification. The backend Laravel repo remains untouched.
