@@ -263,7 +263,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
           try {
             await _fetchCurrentUser();
           } on ApiRequestException catch (problem) {
-            if (problem.statusCode != 401) rethrow;
+            if (problem.statusCode != 401) {
+              rethrow;
+            }
             await _invalidateExpiredToken();
             if (biometricsEnabled && rememberedEmail != null &&
                 await accountVault.hasPassword(rememberedEmail!)) {
@@ -318,7 +320,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
         try {
           await _fetchCurrentUser();
         } on ApiRequestException catch (problem) {
-          if (problem.statusCode != 401) rethrow;
+          if (problem.statusCode != 401) {
+              rethrow;
+            }
           await _invalidateExpiredToken();
           await _loginFromVault(email);
         }
