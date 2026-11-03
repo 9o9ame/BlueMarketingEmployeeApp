@@ -85,8 +85,7 @@ class _CrmScreenState extends State<CrmScreen> {
           final last = numberOf(meta['last_page']) ?? 1;
           return Column(children: [
             Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Total ' + (meta['total']?.toString() ?? leads.length.toString())
-                  + ' · Page ' + page.toString() + '/' + last.toString())),
+              child: Text("Total ${meta['total'] ?? leads.length} · Page $page/$last")),
             Expanded(child: RefreshIndicator(
               onRefresh: () async { load(); await data; },
               child: ListView.builder(
@@ -97,8 +96,7 @@ class _CrmScreenState extends State<CrmScreen> {
                   final id = numberOf(lead['id']);
                   return Card(child: ListTile(
                     title: Text(displayLeadName(lead)),
-                    subtitle: Text((lead['phone_number']?.toString() ?? '')
-                        + ' · ' + (lead['follow_up']?.toString() ?? 'No follow-up')),
+                    subtitle: Text("${lead['phone_number'] ?? ''} · ${lead['follow_up'] ?? 'No follow-up'}"),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: id == null ? null : () async {
                       await Navigator.push<void>(context, MaterialPageRoute(
@@ -140,7 +138,7 @@ class _LeadDetailState extends State<LeadDetail> {
   @override
   void initState() { super.initState(); load(); }
   void load() {
-    data = widget.api.call('GET', 'crm/leads/' + widget.id.toString());
+    data = widget.api.call('GET', 'crm/leads/${widget.id}');
     if (mounted) setState(() {});
   }
   Future<void> form(Map<String, dynamic> lead, {bool followUp = false}) async {
@@ -192,7 +190,7 @@ class LeadHistory extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Lead activity')),
     body: FutureBuilder<Map<String, dynamic>>(
-      future: api.call('GET', 'crm/leads/' + id.toString() + '/history'),
+      future: api.call('GET', 'crm/leads/$id/history'),
       builder: (context, snap) {
         if (snap.hasError) return Center(child: Text(snap.error.toString()));
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
@@ -258,7 +256,7 @@ class _LeadFormState extends State<LeadForm> {
     try {
       final id = numberOf(widget.lead?['id']);
       await widget.api.call(id == null ? 'POST' : 'PUT',
-        id == null ? 'crm/leads' : 'crm/leads/' + id.toString(), data: body);
+        id == null ? 'crm/leads' : 'crm/leads/$id', data: body);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) setState(() => error = e.toString());
@@ -316,7 +314,7 @@ class _FollowUpFormState extends State<FollowUpForm> {
     if (!mounted) return;
     setState(() { busy = true; error = null; });
     try {
-      await widget.api.call('POST', 'crm/leads/' + widget.id.toString() + '/follow-up',
+      await widget.api.call('POST', 'crm/leads/${widget.id}' + '/follow-up',
         data: {'follow_up_date': isoDate(date),
           if (notes.text.trim().isNotEmpty) 'remarks': notes.text.trim()});
       if (mounted) Navigator.pop(context, true);
