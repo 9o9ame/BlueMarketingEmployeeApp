@@ -107,7 +107,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
             },
           ],
         });
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (error) {
       if (mounted) {
         setState(() => issue = '$error');
