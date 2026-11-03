@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
 import 'labour_bulk.dart';
 import 'labour_payment_report.dart';
+import 'premium_design.dart';
 
 class LabourWorkspace extends StatefulWidget {
   const LabourWorkspace({super.key, required this.api, required this.projectId,
@@ -58,7 +59,11 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
           ),
       ],
     ),
+    backgroundColor: BmColors.background,
     body: Column(children: [
+      const BmModuleHero(title: 'Labour workspace',
+        subtitle: 'Daily attendance, worker records and summaries',
+        icon: Icons.engineering_rounded, accent: BmColors.teal),
       Padding(padding: const EdgeInsets.all(12), child: Row(children: [
         Expanded(child: TextField(controller: search,
           textInputAction: TextInputAction.search,
