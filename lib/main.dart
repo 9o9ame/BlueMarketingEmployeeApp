@@ -1,3 +1,3 @@
-import 'blue_marketing_app.dart' as app;
+import 'live_employee_app.dart' as employee;
 
-void main() => app.main();
+void main() => employee.main();
