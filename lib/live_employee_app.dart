@@ -110,7 +110,6 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
   bool loading = true;
   bool biometricsEnabled = false;
   bool projectChosen = false;
-  bool canBiometricLogin = false;
   String? rememberedEmail;
   List<String> savedAccounts = const [];
   late final accountVault = RememberedAccounts(tokenStorage);
@@ -212,8 +211,6 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     if (mounted) {
       setState(() {
         biometricsEnabled = enabled;
-        canBiometricLogin = enabled && (api.token != null ||
-            savedAccounts.isNotEmpty);
       });
     }
   }
@@ -227,7 +224,6 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     api.token = null;
     await tokenStorage.delete(key: tokenKey);
     // Keep biometric preference and explicit remembered credentials.
-    canBiometricLogin = biometricsEnabled;
   }
 
   Future<void> _loginFromVault(String email) async {
@@ -261,8 +257,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
       rememberedEmail = await tokenStorage.read(key: rememberedEmailKey);
       rememberedEmail ??= savedAccounts.isEmpty ? null : savedAccounts.first;
       api.token = await tokenStorage.read(key: tokenKey);
-      canBiometricLogin = biometricsEnabled;
-      if (api.token != null) {
+        if (api.token != null) {
         final allowed = !biometricsEnabled || await _verifyOnDevice();
         if (allowed) {
           try {
@@ -375,8 +370,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
       } catch (_) {
         // A storage failure must not invalidate a successful server login.
       }
-      canBiometricLogin = biometricsEnabled;
-      setProfile(data);
+        setProfile(data);
     } catch (problem) {
       error = '$problem';
     } finally {
@@ -402,7 +396,6 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
       if (mounted) {
         setState(() {
           biometricsEnabled = true;
-          canBiometricLogin = true;
         });
       }
     } catch (_) {
@@ -419,7 +412,6 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     }
     api.token = null;
     await tokenStorage.delete(key: tokenKey);
-    canBiometricLogin = biometricsEnabled;
     if (mounted) {
       setState(() {
         profile = null;
