@@ -18,6 +18,7 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
   DateTime date = DateTime.now();
   bool saving = false;
   String? error;
+  int page = 1;
 
   @override
   void dispose() {
@@ -28,11 +29,17 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
   @override
   void initState() {
     super.initState();
+    loadPage();
+  }
+
+  void loadPage() {
     labour = widget.api.call('GET', 'attendance/labour', query: {
       'project_id': widget.projectId.toString(),
       'status': 'active',
       'per_page': '100',
+      'page': page.toString(),
     });
+    if (mounted) setState(() {});
   }
 
   Future<void> submit() async {
@@ -120,9 +127,9 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
           ),
           if (more) const Card(child: ListTile(
             leading: Icon(Icons.info_outline),
-            title: Text('Only the first 100 workers are shown'),
-            subtitle: Text('Additional workers require separate page selection; '
-              'this form cannot silently mark unseen workers.'),
+            title: Text('Select workers across pages'),
+            subtitle: Text('Selections remain saved while navigating pages. '
+              'Only explicitly selected workers are submitted.'),
           )),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
@@ -179,6 +186,16 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
               ]));
             },
           )),
+          if (more) Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              OutlinedButton(onPressed: page > 1 ? () { page--; loadPage(); } : null,
+                child: const Text('Previous')),
+              Text('Page $page / ${numberOf(meta['last_page']) ?? 1}'),
+              OutlinedButton(onPressed: page < (numberOf(meta['last_page']) ?? 1)
+                  ? () { page++; loadPage(); } : null,
+                child: const Text('Next')),
+            ],
+          ),
           if (error != null) Text(error!,
               style: const TextStyle(color: Colors.red)),
           Padding(padding: const EdgeInsets.all(12),
