@@ -271,7 +271,9 @@ class _LeadFormState extends State<LeadForm> {
       return;
     }
     if (!await confirmChange(context, widget.lead == null
-        ? 'Create this lead?' : 'Update this lead?')) return;
+        ? 'Create this lead?' : 'Update this lead?')) {
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -364,9 +366,8 @@ class _FollowUpFormState extends State<FollowUpForm> {
     try {
       await widget.api.call('POST', 'crm/leads/${widget.id}/follow-up',
         data: {'follow_up_date': isoDate(date),
-          if (notes.text.trim().isNotEmpty) {
-            'remarks': notes.text.trim()});
-          }
+          if (notes.text.trim().isNotEmpty) 'remarks': notes.text.trim(),
+        });
       if (mounted) {
         Navigator.pop(context, true);
       }
