@@ -29,7 +29,7 @@ void main() {
     await tester.tap(retry);
     await tester.pump();
     expect(attempts, 1);
-    expect(find.text('staff@example.com'), findsOneWidget);
+    expect(tester.widget<TextFormField>(find.byType(TextFormField).first).controller?.text, 'staff@example.com');
   });
 
   testWidgets('Fingerprint button hidden without a reusable session',
