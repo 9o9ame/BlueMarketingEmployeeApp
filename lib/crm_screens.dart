@@ -314,7 +314,7 @@ class _FollowUpFormState extends State<FollowUpForm> {
     if (!mounted) return;
     setState(() { busy = true; error = null; });
     try {
-      await widget.api.call('POST', 'crm/leads/${widget.id}' + '/follow-up',
+      await widget.api.call('POST', 'crm/leads/${widget.id}/follow-up',
         data: {'follow_up_date': isoDate(date),
           if (notes.text.trim().isNotEmpty) 'remarks': notes.text.trim()});
       if (mounted) Navigator.pop(context, true);
