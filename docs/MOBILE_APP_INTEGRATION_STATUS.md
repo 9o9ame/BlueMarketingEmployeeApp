@@ -117,3 +117,20 @@ flutter analyze
 flutter test
 ```
 Preserve old CRM-formatting stash. Local `pubspec.yaml`, Android native project and dependency lockfile should be committed to the standalone Flutter repo after verification. The backend Laravel repo remains untouched.
+
+## Strict API scope — 2026-11-03
+
+**Source of truth:** Laravel `routes/api.php`, `Route::prefix('v1/mobile')`. Do not create new Laravel routes, controllers or mobile app features that require unregistered endpoints. Existing Flutter work must only call these registered mobile API route families:
+
+- `auth/login`, `auth/me`, `auth/logout`;
+- `projects`, `dashboard`;
+- `crm/summary`, `crm/leads`, `crm/leads/{lead}`, follow-up, history, assign;
+- `attendance/staff/*`, `attendance/labour/*`;
+- `stock/meta`, `stock/items`, `stock/parties`, `stock/entries`, `stock/entries/in`, `stock/entries/out`, `stock/finance/{kind}/{sourceId}/approve`, `stock/report`;
+- `reports/inventory`, `reports/projects` and registered per-project detail/plots/bookings/recovery/customers;
+- `approvals/summary`, `approvals/`, `approvals/{approval}`, `approvals/{approval}/preview`, approve and reject.
+
+Some listed routes still lack a dedicated UI (e.g. CRM assignment and stock finance approval). Those are **not completed** and should not be represented as implemented. A mobile feature with no registered API must remain out of scope. Existing biometric device unlock is local and does not require a backend API.
+
+### Windows analyzer failure addressed
+The supplied Windows log shows a malformed Dart regular expression near the beginning of `lib/stock_entry_form.dart` (`Unterminated string literal`); this produced cascading test failures. Repaired its validator and cleaned the `live_employee_app.dart` conditional braces. These changes were pushed but Windows `flutter analyze` / `flutter test` have NOT been rerun after the fix. Do not make an APK until both checks pass.
