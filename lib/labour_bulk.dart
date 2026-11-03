@@ -47,7 +47,9 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
         ],
       ),
     );
-    if (confirm != true || !mounted) return;
+    if (confirm != true || !mounted) {
+      return;
+    }
     setState(() { saving = true; error = null; });
     try {
       await widget.api.call('POST', 'attendance/labour/mark', data: {
@@ -61,9 +63,13 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
       });
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) setState(() => error = '$e');
+      if (mounted) {
+        setState(() => error = '$e');
+      }
     } finally {
-      if (mounted) setState(() => saving = false);
+      if (mounted) {
+        setState(() => saving = false);
+      }
     }
   }
 
@@ -73,7 +79,9 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
     body: FutureBuilder<Map<String, dynamic>>(
       future: labour,
       builder: (context, snapshot) {
-        if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
+        if (snapshot.hasError) {
+          return Center(child: Text('${snapshot.error}'));
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -90,7 +98,9 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
                 context: context, initialDate: date,
                 firstDate: DateTime(2020), lastDate: DateTime(2100),
               );
-              if (next != null) setState(() => date = next);
+              if (next != null) {
+                setState(() => date = next);
+              }
             },
           ),
           if (more) const Card(child: ListTile(
@@ -104,7 +114,9 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
             itemBuilder: (context, index) {
               final worker = rows[index];
               final id = numberOf(worker['id']);
-              if (id == null) return const SizedBox.shrink();
+              if (id == null) {
+                return const SizedBox.shrink();
+              }
               return Card(child: Column(children: [
                 ListTile(
                   title: Text('${worker['name'] ?? 'Worker'}'),
