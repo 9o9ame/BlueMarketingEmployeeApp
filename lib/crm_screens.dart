@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
+import 'premium_design.dart';
 
 String displayLeadName(Map<String, dynamic> lead) =>
     [lead['first_name'], lead['last_name']].where((v) => v != null)
@@ -56,11 +57,15 @@ class _CrmScreenState extends State<CrmScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: BmColors.background,
     appBar: AppBar(title: const Text('CRM Leads')),
     floatingActionButton: widget.permissions.contains('create lead')
         ? FloatingActionButton.extended(onPressed: create,
             icon: const Icon(Icons.add), label: const Text('New lead')) : null,
     body: Column(children: [
+      const BmModuleHero(title: 'CRM & Leads',
+        subtitle: 'Manage leads, follow-ups and your project pipeline',
+        icon: Icons.people_alt_rounded, accent: BmColors.blue),
       Padding(padding: const EdgeInsets.all(12), child: Row(children: [
         Expanded(child: TextField(
           controller: search,
