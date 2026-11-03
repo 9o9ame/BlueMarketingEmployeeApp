@@ -536,22 +536,26 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context, showDragHandle: true, isScrollControlled: true,
       builder: (dialog) => SafeArea(child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const ListTile(
-            title: Text('Recent BlueMarketing accounts',
-              style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text('Most recent account first.'),
-          ),
-          for (final account in widget.savedAccounts)
-            ListTile(
-              leading: const Icon(Icons.account_circle_rounded,
-                color: BmColors.blue),
-              title: Text(account),
-              subtitle: const Text('Tap to sign in'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.pop(dialog, account),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(dialog).height * .75),
+          child: ListView(shrinkWrap: true, children: [
+            const ListTile(
+              title: Text('Recent BlueMarketing accounts',
+                style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text('Most recent account first.'),
             ),
-        ]),
+            for (final account in widget.savedAccounts)
+              ListTile(
+                leading: const Icon(Icons.account_circle_rounded,
+                  color: BmColors.blue),
+                title: Text(account),
+                subtitle: const Text('Tap to sign in'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.pop(dialog, account),
+              ),
+          ]),
+        ),
       )),
     );
     if (chosen == null || !mounted) {
