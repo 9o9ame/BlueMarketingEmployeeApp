@@ -19,6 +19,15 @@ void main() {
     expect(StockEntryFormValidation.checkRate('bad'), isNotNull);
   });
 
+  test('PKR rates convert to backend paisa without floating-point rounding', () {
+    expect(StockEntryFormValidation.rateMinor('100'), 10000);
+    expect(StockEntryFormValidation.rateMinor('100.50'), 10050);
+    expect(StockEntryFormValidation.rateMinor('0.01'), 1);
+    expect(StockEntryFormValidation.rateMinor('100.555'), isNull);
+    expect(StockEntryFormValidation.rateMinor('-1'), isNull);
+    expect(StockEntryFormValidation.rateMinor('abc'), isNull);
+  });
+
   test('date formatting used by labour and reports', () {
     final date = DateTime(2026, 11, 3);
     expect(stockDate(date), '2026-11-03');
