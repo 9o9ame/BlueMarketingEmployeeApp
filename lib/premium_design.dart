@@ -33,15 +33,21 @@ class BmSoftCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   @override
   Widget build(BuildContext context) => Container(
-    padding: padding,
     decoration: BoxDecoration(
-      color: Colors.white, borderRadius: BorderRadius.circular(21),
-      border: Border.all(color: const Color(0xFFE4EBF9)),
+      borderRadius: BorderRadius.circular(21),
       boxShadow: [BoxShadow(
         color: BmColors.navy.withValues(alpha: .07),
         blurRadius: 22, offset: const Offset(0, 9))],
     ),
-    child: child,
+    child: Material(
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(21),
+        side: const BorderSide(color: Color(0xFFE4EBF9)),
+      ),
+      child: Padding(padding: padding, child: child),
+    ),
   );
 }
 
