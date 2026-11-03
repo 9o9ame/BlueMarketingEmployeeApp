@@ -9,12 +9,22 @@ import 'labour_screens.dart';
 import 'approval_screens.dart';
 import 'project_reports.dart';
 import 'dashboard_metrics.dart';
+import 'premium_design.dart';
 
 const apiHost = String.fromEnvironment('API_BASE_URL',
     defaultValue: 'https://dev.bluemarketing.com.pk');
 const tokenStorage = FlutterSecureStorage();
 const tokenKey = 'bm_access_token';
 const biometricFlagKey = 'bm_biometric_enabled';
+const rememberedEmailKey = 'bm_remembered_email';
+
+class ApiRequestException implements Exception {
+  const ApiRequestException(this.statusCode, this.message);
+  final int statusCode;
+  final String message;
+  @override
+  String toString() => message;
+}
 
 Map<String, dynamic> objectOf(dynamic raw) => raw is Map
     ? raw.map((key, value) => MapEntry(key.toString(), value))
@@ -48,7 +58,8 @@ class ApiClient {
     }
     final result = objectOf(decoded);
     if (response.statusCode >= 400 || result['status'] == false) {
-      throw Exception(result['message'] ?? 'Request failed');
+      throw ApiRequestException(response.statusCode,
+        result['message']?.toString() ?? 'Request failed');
     }
     return result;
   }
@@ -98,6 +109,8 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
   bool loading = true;
   bool biometricsEnabled = false;
   bool projectChosen = false;
+  bool canBiometricLogin = false;
+  String? rememberedEmail;
   final biometric = BiometricUnlock();
 
   @override
@@ -124,34 +137,77 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     setState(() { projectId = id; projectChosen = true; });
   }
 
-  Future<void> configureBiometrics(bool enable) async {
-    if (enable && !await biometric.verify()) {
-      throw Exception('Biometric verification failed or is unavailable.');
+  Future<void> configureBiometrics(bool enabled) async {
+    if (enabled && !await biometric.verify()) {
+      throw Exception('Fingerprint or face verification was not completed.');
     }
-    await tokenStorage.write(key: biometricFlagKey, value: enable ? '1' : '0');
-    if (mounted) {
-      setState(() => biometricsEnabled = enable);
-    }
+    await tokenStorage.write(key: biometricFlagKey,
+      value: enabled ? '1' : '0');
+    if (mounted) setState(() {
+      biometricsEnabled = enabled;
+      canBiometricLogin = enabled && api.token != null;
+    });
+  }
+
+  Future<void> _fetchCurrentUser() async {
+    final response = await api.call('GET', 'auth/me');
+    setProfile(objectOf(response['data']));
+  }
+
+  Future<void> _invalidateExpiredToken() async {
+    api.token = null;
+    await tokenStorage.delete(key: tokenKey);
+    canBiometricLogin = false;
+    // Deliberately preserve biometricFlagKey until manually disabled.
   }
 
   Future<void> restore() async {
     try {
-      biometricsEnabled = (await tokenStorage.read(key: biometricFlagKey)) == '1';
+      biometricsEnabled =
+        (await tokenStorage.read(key: biometricFlagKey)) == '1';
+      rememberedEmail = await tokenStorage.read(key: rememberedEmailKey);
       api.token = await tokenStorage.read(key: tokenKey);
+      canBiometricLogin = biometricsEnabled && api.token != null;
       if (api.token != null) {
-        if (biometricsEnabled && !await biometric.verify()) {
-          throw Exception('Session unlock was not completed.');
+        if (!biometricsEnabled || await biometric.verify()) {
+          await _fetchCurrentUser();
+        } else {
+          // Do NOT delete the token or turn off the user's setting.
+          error = 'Unlock cancelled. Tap fingerprint below to try again.';
         }
-        final response = await api.call('GET', 'auth/me');
-        setProfile(objectOf(response['data']));
+      }
+    } on ApiRequestException catch (requestError) {
+      if (requestError.statusCode == 401) {
+        await _invalidateExpiredToken();
+      }
+      error = requestError.message;
+    } catch (_) {
+      error = 'Could not restore the session. Sign in or retry fingerprint.';
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> retryBiometric() async {
+    if (!biometricsEnabled || api.token == null) return;
+    setState(() { loading = true; error = null; });
+    try {
+      if (!await biometric.verify()) {
+        error = 'Fingerprint verification was cancelled or failed.';
+      } else {
+        await _fetchCurrentUser();
+      }
+    } on ApiRequestException catch (requestError) {
+      if (requestError.statusCode == 401) {
+        await _invalidateExpiredToken();
+        error = 'Session expired. Please sign in with your email and password.';
+      } else {
+        error = requestError.message;
       }
     } catch (_) {
-      api.token = null;
-      await tokenStorage.delete(key: tokenKey);
-      // Require email/password again when biometric unlock cannot complete.
-    }
-    if (mounted) {
-      setState(() => loading = false);
+      error = 'Network problem. You can retry fingerprint or sign in.';
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -159,7 +215,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     setState(() { loading = true; error = null; });
     try {
       final response = await api.call('POST', 'auth/login',
-          data: {'email': email, 'password': password});
+        data: {'email': email, 'password': password});
       final data = objectOf(response['data']);
       final token = data['token']?.toString();
       if (token == null || token.isEmpty) {
@@ -167,15 +223,16 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
       }
       api.token = token;
       await tokenStorage.write(key: tokenKey, value: token);
-      // A different account must explicitly opt in to biometrics again.
-      await tokenStorage.delete(key: biometricFlagKey);
-      biometricsEnabled = false;
+      // Keep email for convenience, never persist a password.
+      await tokenStorage.write(key: rememberedEmailKey, value: email);
+      rememberedEmail = email;
+      // Biometric preference does not get reset during a password sign in.
+      canBiometricLogin = biometricsEnabled;
       setProfile(data);
-    } catch (e) {
-      error = e.toString();
-    }
-    if (mounted) {
-      setState(() => loading = false);
+    } catch (requestError) {
+      error = '$requestError';
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -184,17 +241,18 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     try {
       await api.call('POST', 'auth/logout');
     } catch (_) {
-      // Local logout is required even when server is unavailable.
+      // Invalidate the local token even if the server cannot be reached.
     }
-    api.token = null;
     await tokenStorage.delete(key: tokenKey);
-    await tokenStorage.delete(key: biometricFlagKey);
+    api.token = null;
+    canBiometricLogin = false;
+    // Retain user's biometric setting; never disable it automatically.
     if (mounted) {
       setState(() {
         profile = null;
         projectId = null;
         projectChosen = false;
-        biometricsEnabled = false;
+        error = null;
         loading = false;
       });
     }
@@ -212,8 +270,14 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2457A6)),
-      scaffoldBackgroundColor: const Color(0xFFF6F8FC),
+      colorScheme: ColorScheme.fromSeed(seedColor: BmColors.blue),
+      scaffoldBackgroundColor: BmColors.background,
+      appBarTheme: const AppBarTheme(backgroundColor: Colors.white,
+        foregroundColor: BmColors.navy, elevation: 0, centerTitle: false),
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      }),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
@@ -221,7 +285,10 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     home: loading
         ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : profile == null
-            ? LoginScreen(onLogin: login, error: error)
+            ? LoginScreen(onLogin: login, error: error,
+                rememberedEmail: rememberedEmail,
+                showFingerprint: canBiometricLogin,
+                onFingerprint: retryBiometric)
             : !projectChosen
                 ? ProjectSelectionScreen(profile: profile!, onSelect: chooseProject, onLogout: logout)
                 : HomeScreen(
@@ -237,15 +304,20 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.onLogin, required this.error});
+  const LoginScreen({super.key, required this.onLogin, required this.error,
+    this.rememberedEmail, this.showFingerprint = false, this.onFingerprint});
   final Future<void> Function(String, String) onLogin;
   final String? error;
+  final String? rememberedEmail;
+  final bool showFingerprint;
+  final VoidCallback? onFingerprint;
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final email = TextEditingController();
+  late final email = TextEditingController(text: widget.rememberedEmail ?? '');
   final password = TextEditingController();
   final form = GlobalKey<FormState>();
   bool obscure = true;
@@ -259,104 +331,168 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(child: Center(child: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 450),
-        child: Form(key: form, child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const CircleAvatar(radius: 34, child: Icon(Icons.apartment, size: 36)),
-            const SizedBox(height: 20),
-            const Text('BlueMarketing', textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 29, fontWeight: FontWeight.w800)),
-            const Text('Employee Workspace', textAlign: TextAlign.center),
-            const SizedBox(height: 28),
-            TextFormField(
-              controller: email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                  labelText: 'Work email', prefixIcon: Icon(Icons.email_outlined)),
-              validator: (value) => value?.contains('@') == true ? null : 'Enter email',
-            ),
+    backgroundColor: BmColors.navy,
+    body: Stack(children: [
+      const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [BmColors.navy, BmColors.blue, BmColors.cyan, BmColors.purple])))),
+      Positioned(top: -80, right: -75, child: CircleAvatar(
+        radius: 135, backgroundColor: Colors.white.withValues(alpha: .08))),
+      Positioned(bottom: -100, left: -90, child: CircleAvatar(
+        radius: 160, backgroundColor: Colors.white.withValues(alpha: .09))),
+      SafeArea(child: Center(child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 430),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Center(child: BmLogo(size: 74)),
             const SizedBox(height: 14),
-            TextFormField(
-              controller: password,
-              obscureText: obscure,
-              decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () => setState(() => obscure = !obscure),
-                  )),
-              validator: (value) => value?.isNotEmpty == true ? null : 'Enter password',
+            const Text('BlueMarketing', textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 28,
+                fontWeight: FontWeight.w900)),
+            const Text('Employee Workspace', textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 30),
+            const Text('Welcome back!', style: TextStyle(
+              color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+            const Text('Sign in to your employee account',
+              style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 19),
+            BmSoftCard(padding: const EdgeInsets.all(20),
+              child: Form(key: form, child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  TextFormField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(labelText: 'Work email',
+                      prefixIcon: Icon(Icons.person_outline_rounded)),
+                    validator: (value) => value?.contains('@') == true
+                      ? null : 'Enter a valid email',
+                  ),
+                  const SizedBox(height: 15),
+                  TextFormField(
+                    controller: password, obscureText: obscure,
+                    autofillHints: const [AutofillHints.password],
+                    decoration: InputDecoration(labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscure ? Icons.visibility_outlined :
+                          Icons.visibility_off_outlined),
+                        onPressed: () => setState(() => obscure = !obscure))),
+                    validator: (value) => value?.isNotEmpty == true
+                      ? null : 'Enter password',
+                  ),
+                  if (widget.error != null) ...[
+                    const SizedBox(height: 10),
+                    Text(widget.error!, style: const TextStyle(color: Colors.red)),
+                  ],
+                  const SizedBox(height: 20),
+                  BmPrimaryButton(label: 'Secure sign in',
+                    onPressed: !apiHost.startsWith('https://') ? null : () {
+                      if (form.currentState!.validate()) {
+                        widget.onLogin(email.text.trim(), password.text);
+                      }
+                    }),
+                  if (widget.showFingerprint && widget.onFingerprint != null) ...[
+                    const SizedBox(height: 13),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.fingerprint_rounded, size: 26),
+                      label: const Text('Sign in with fingerprint / face'),
+                      onPressed: widget.onFingerprint,
+                    ),
+                  ],
+                  const SizedBox(height: 13),
+                  const Text('Your password is not stored on this device.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: BmColors.muted, fontSize: 11)),
+                ],
+              )),
             ),
-            if (widget.error != null) ...[
-              const SizedBox(height: 10),
-              Text(widget.error!, style: const TextStyle(color: Colors.red)),
-            ],
-            if (!apiHost.startsWith('https://'))
-              const Text('API_BASE_URL is missing. Configure an HTTPS URL.',
-                  style: TextStyle(color: Colors.deepOrange)),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: apiHost.startsWith('https://') ? () {
-                if (form.currentState!.validate()) {
-                  widget.onLogin(email.text.trim(), password.text);
-                }
-              } : null,
-              child: const Text('Secure sign in'),
-            ),
-          ],
-        )),
-      ),
-    ))),
+          ]),
+        ),
+      ))),
+    ]),
   );
 }
 
-class ProjectSelectionScreen extends StatelessWidget {
-  const ProjectSelectionScreen({
-    super.key, required this.profile, required this.onSelect,
-    required this.onLogout,
-  });
+class ProjectSelectionScreen extends StatefulWidget {
+  const ProjectSelectionScreen({super.key, required this.profile,
+    required this.onSelect, required this.onLogout});
   final Map<String, dynamic> profile;
   final Future<void> Function(int) onSelect;
   final VoidCallback onLogout;
 
   @override
+  State<ProjectSelectionScreen> createState() => _ProjectSelectionScreenState();
+}
+
+class _ProjectSelectionScreenState extends State<ProjectSelectionScreen> {
+  String search = '';
+  @override
   Widget build(BuildContext context) {
-    final projects = listOf(profile['projects']).map(objectOf).toList();
+    final projects = listOf(widget.profile['projects']).map(objectOf)
+      .where((p) => (p['name']?.toString() ?? '')
+        .toLowerCase().contains(search.toLowerCase())).toList();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Choose your project'),
-        actions: [
-          IconButton(onPressed: onLogout, icon: const Icon(Icons.logout)),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text('Select the project you want to work in.',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 16),
-          if (projects.isEmpty)
-            const ListTile(
-              leading: Icon(Icons.info_outline),
-              title: Text('No active projects assigned'),
-              subtitle: Text('Contact your administrator.'),
+      backgroundColor: BmColors.background,
+      appBar: AppBar(title: const Text('Select a project'),
+        actions: [IconButton(tooltip: 'Logout', onPressed: widget.onLogout,
+          icon: const Icon(Icons.logout_rounded))]),
+      body: ListView(padding: const EdgeInsets.all(18), children: [
+        Container(padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [BmColors.blue, BmColors.purple]),
+            borderRadius: BorderRadius.circular(23)),
+          child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            BmLogo(size: 40), SizedBox(height: 12),
+            Text('Choose your workspace',
+              style: TextStyle(color: Colors.white, fontSize: 22,
+                fontWeight: FontWeight.w800)),
+            Text('Choose a project to continue your work',
+              style: TextStyle(color: Colors.white70)),
+          ]),
+        ),
+        const SizedBox(height: 19),
+        TextField(onChanged: (value) => setState(() => search = value),
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search_rounded),
+            labelText: 'Search projects')),
+        const SizedBox(height: 15),
+        if (projects.isEmpty) const BmSoftCard(child: ListTile(
+          title: Text('No matching projects'),
+          subtitle: Text('Check your search or contact your administrator.'))),
+        for (var i = 0; i < projects.length; i++)
+          Padding(padding: const EdgeInsets.only(bottom: 12),
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(projects[i]['id']),
+              duration: Duration(milliseconds: 250 + i * 50),
+              tween: Tween(begin: .95, end: 1),
+              builder: (context, amount, child) =>
+                Transform.scale(scale: amount, child: child),
+              child: BmSoftCard(padding: EdgeInsets.zero,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(14),
+                  leading: Container(width: 54, height: 54,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: i.isEven
+                        ? [BmColors.cyan, BmColors.blue]
+                        : [BmColors.purple, BmColors.blue]),
+                      borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.apartment_rounded, color: Colors.white)),
+                  title: Text(projects[i]['name']?.toString() ?? 'Project',
+                    style: const TextStyle(fontWeight: FontWeight.w800,
+                      color: BmColors.navy)),
+                  subtitle: const Text('Tap to open workspace',
+                    style: TextStyle(color: BmColors.muted)),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: numberOf(projects[i]['id']) == null ? null :
+                    () => widget.onSelect(numberOf(projects[i]['id'])!),
+                )),
             ),
-          for (final project in projects)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.apartment_outlined),
-                title: Text(project['name']?.toString() ?? 'Project'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: numberOf(project['id']) == null
-                    ? null : () => onSelect(numberOf(project['id'])!),
-              ),
-            ),
-        ],
-      ),
+          ),
+      ]),
     );
   }
 }
@@ -430,84 +566,21 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = objectOf(profile['user']);
     final permissions = listOf(profile['permissions']).map((e) => e.toString()).toSet();
     final roles = listOf(profile['role_names']).map((e) => e.toString()).toSet();
-    final projects = listOf(profile['projects']).map(objectOf).toList();
-    return Scaffold(
-      appBar: AppBar(title: const Text('BlueMarketing'),
-        actions: [IconButton(onPressed: onLogout, icon: const Icon(Icons.logout))]),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF183B70), Color(0xFF3266B2)]),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Welcome back', style: TextStyle(color: Colors.white70)),
-            const SizedBox(height: 4),
-            Text(user['name']?.toString() ?? 'Employee',
-                style: const TextStyle(color: Colors.white, fontSize: 26,
-                    fontWeight: FontWeight.bold)),
-            Text(roles.join(', '), style: const TextStyle(color: Colors.white70)),
-          ]),
-        ),
-        const SizedBox(height: 16),
-        if (projects.isNotEmpty)
-          DropdownButtonFormField<int>(
-            initialValue: projects.any((p) => numberOf(p['id']) == projectId)
-                ? projectId : null,
-            decoration: const InputDecoration(labelText: 'Selected project'),
-            items: projects.map((p) => DropdownMenuItem<int>(
-              value: numberOf(p['id']),
-              child: Text(p['name']?.toString() ?? 'Project'),
-            )).toList(),
-            onChanged: onProject,
-          ),
-        if (projectId != null) ...[
-          const SizedBox(height: 16),
-          EmployeeDashboardMetrics(api: api, projectId: projectId!),
-        ],
-        const SizedBox(height: 20),
-        const Text('My workspace', style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
-        Card(child: ListTile(
-          leading: const Icon(Icons.access_time_outlined),
-          title: const Text('Today attendance'),
-          subtitle: const Text('Check in, check out, history'),
-          onTap: () => Navigator.push(context, MaterialPageRoute<void>(
-              builder: (_) => AttendanceScreen(api: api, projectId: projectId))),
-        )),
-        for (final module in allowedModules(permissions,
-            superadmin: roles.contains('superadmin') || roles.contains('super-admin') || roles.contains('admin')))
-          Card(child: ListTile(
-            leading: Icon(module.icon),
-            title: Text(module.title),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => open(context, module.title, module.route,
-                project: module.needsProject),
-          )),
-        const SizedBox(height: 15),
-        Card(child: SwitchListTile.adaptive(
-          title: const Text('Fingerprint / Face unlock'),
-          subtitle: const Text('Optional local unlock on your next app launch'),
-          value: biometricsEnabled,
-          onChanged: (enabled) async {
-            try {
-              await onBiometricsChanged(enabled);
-            } catch (error) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$error')),
-                );
-              }
-            }
-          },
-        )),
-        const Text('Data and permissions come from your BlueMarketing account.',
-            style: TextStyle(color: Colors.blueGrey, fontSize: 12)),
-      ]),
+    final available = allowedModules(permissions,
+      superadmin: roles.contains('superadmin') ||
+        roles.contains('super-admin') || roles.contains('admin'));
+    return BmDashboard(
+      api: api, profile: profile, projectId: projectId, modules: available,
+      biometricsEnabled: biometricsEnabled,
+      onBiometricsChanged: onBiometricsChanged,
+      onProject: onProject,
+      onLogout: onLogout,
+      onAttendance: () => Navigator.push(context, MaterialPageRoute<void>(
+        builder: (_) => AttendanceScreen(api: api, projectId: projectId))),
+      onModule: (module) => open(context, module.title, module.route,
+        project: module.needsProject),
     );
   }
 }
