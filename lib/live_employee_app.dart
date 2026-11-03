@@ -497,9 +497,15 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.onLogin, required this.error,
-    this.rememberedEmail, this.showFingerprint = false, this.onFingerprint});
+  const LoginScreen({
+    super.key, required this.onLogin, required this.error,
+    this.rememberedEmail, this.showFingerprint = false, this.onFingerprint,
+    this.savedAccounts = const [], this.onSavedAccount, this.onLoginRemembered,
+  });
   final Future<void> Function(String, String) onLogin;
+  final Future<void> Function(String, String, bool)? onLoginRemembered;
+  final Future<void> Function(String)? onSavedAccount;
+  final List<String> savedAccounts;
   final String? error;
   final String? rememberedEmail;
   final bool showFingerprint;
@@ -514,6 +520,39 @@ class _LoginScreenState extends State<LoginScreen> {
   final password = TextEditingController();
   final form = GlobalKey<FormState>();
   bool obscure = true;
+  bool saveForFingerprint = false;
+
+  Future<void> chooseAccount() async {
+    if (widget.savedAccounts.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    final chosen = await showModalBottomSheet<String>(
+      context: context, showDragHandle: true, isScrollControlled: true,
+      builder: (dialog) => SafeArea(child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const ListTile(
+            title: Text('Recent BlueMarketing accounts',
+              style: TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Text('Most recent account first.'),
+          ),
+          for (final account in widget.savedAccounts)
+            ListTile(
+              leading: const Icon(Icons.account_circle_rounded,
+                color: BmColors.blue),
+              title: Text(account),
+              subtitle: const Text('Tap to sign in'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.pop(dialog, account),
+            ),
+        ]),
+      )),
+    );
+    if (chosen == null || !mounted) return;
+    email.text = chosen;
+    password.clear();
+    setState(() {});
+    await widget.onSavedAccount?.call(chosen);
+  }
 
   @override
   void dispose() {
@@ -558,8 +597,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: email,
                     keyboardType: TextInputType.emailAddress,
                     autofillHints: const [AutofillHints.email],
-                    decoration: const InputDecoration(labelText: 'Work email',
-                      prefixIcon: Icon(Icons.person_outline_rounded)),
+                    onTap: chooseAccount,
+                    decoration: InputDecoration(labelText: 'Work email',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      suffixIcon: widget.savedAccounts.isEmpty ? null :
+                        IconButton(
+                          tooltip: 'Choose recent account',
+                          icon: const Icon(Icons.manage_accounts_rounded),
+                          onPressed: chooseAccount)),
                     validator: (value) => value?.contains('@') == true
                       ? null : 'Enter a valid email',
                   ),
@@ -567,6 +612,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: password, obscureText: obscure,
                     autofillHints: const [AutofillHints.password],
+                    onTap: chooseAccount,
                     decoration: InputDecoration(labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
@@ -576,15 +622,42 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: (value) => value?.isNotEmpty == true
                       ? null : 'Enter password',
                   ),
+                  if (widget.savedAccounts.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: chooseAccount,
+                      icon: const Icon(Icons.history_rounded),
+                      label: const Text('Use a recent account'),
+                    ),
+                  ],
                   if (widget.error != null) ...[
                     const SizedBox(height: 10),
                     Text(widget.error!, style: const TextStyle(color: Colors.red)),
                   ],
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: saveForFingerprint,
+                    onChanged: (value) =>
+                      setState(() => saveForFingerprint = value ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('Remember for fingerprint sign-in',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    subtitle: const Text('Optional encrypted password storage; '
+                      'requires biometric verification.',
+                      style: TextStyle(fontSize: 10)),
+                  ),
+                  const SizedBox(height: 12),
                   BmPrimaryButton(label: 'Secure sign in',
                     onPressed: !apiHost.startsWith('https://') ? null : () {
                       if (form.currentState!.validate()) {
-                        widget.onLogin(email.text.trim(), password.text);
+                        if (widget.onLoginRemembered != null) {
+                          widget.onLoginRemembered!(
+                            email.text.trim(), password.text, saveForFingerprint);
+                        } else {
+                          widget.onLogin(email.text.trim(), password.text);
+                        }
                       }
                     }),
                   if (widget.showFingerprint && widget.onFingerprint != null) ...[
@@ -596,7 +669,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                   const SizedBox(height: 13),
-                  const Text('Your password is not stored on this device.',
+                  const Text('Recent emails are remembered. Passwords are saved '
+                    'only if you select biometric sign-in.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: BmColors.muted, fontSize: 11)),
                 ],
