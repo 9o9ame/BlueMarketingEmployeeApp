@@ -59,8 +59,12 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
       Expanded(child: FutureBuilder<Map<String, dynamic>>(
         future: current,
         builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text(snap.error.toString()));
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          if (snap.hasError) {
+            return Center(child: Text(snap.error.toString()));
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final rows = listOf(snap.data!['data']).map(objectOf).toList();
           final meta = objectOf(snap.data!['meta']);
           final last = numberOf(meta['last_page']) ?? 1;
@@ -88,7 +92,9 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
                               labourId: numberOf(labour['id'])!,
                               name: labour['name']?.toString() ?? 'Labour',
                               existing: today.isNotEmpty)));
-                          if (saved == true) load();
+                          if (saved == true) {
+                            load();
+                          }
                         }
                       : null,
                   ));
@@ -158,7 +164,9 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
             child: const Text('Confirm')),
         ],
       )) ?? false;
-    if (!confirmed || !mounted) return;
+    if (!confirmed || !mounted) {
+      return;
+    }
     setState(() { saving = true; error = null; });
     try {
       await widget.api.call('POST', 'attendance/labour/mark', data: {
@@ -171,11 +179,17 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
           if (notes.text.trim().isNotEmpty) 'remarks': notes.text.trim(),
         }],
       });
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      if (mounted) setState(() => error = e.toString());
+      if (mounted) setState(() {
+        => error = e.toString());
+      }
     } finally {
-      if (mounted) setState(() => saving = false);
+      if (mounted) setState(() {
+        => saving = false);
+      }
     }
   }
 
@@ -190,7 +204,9 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
       OutlinedButton.icon(onPressed: () async {
         final next = await showDatePicker(context: context,
           initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
-        if (next != null) setState(() => date = next);
+        if (next != null) setState(() {
+          => date = next);
+        }
       }, icon: const Icon(Icons.date_range), label: Text(dateValue)),
       const SizedBox(height: 14),
       DropdownButtonFormField<String>(
@@ -227,12 +243,18 @@ class LabourReportScreen extends StatelessWidget {
       future: api.call('GET', 'attendance/labour/report',
         query: {'project_id': projectId.toString()}),
       builder: (context, snap) {
-        if (snap.hasError) return Center(child: Text(snap.error.toString()));
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (snap.hasError) {
+          return Center(child: Text(snap.error.toString()));
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final data = snap.data!['data'];
         final rows = data is List ? listOf(data).map(objectOf).toList()
           : listOf(objectOf(data)['rows']).map(objectOf).toList();
-        if (rows.isEmpty) return const Center(child: Text('No labour report data.'));
+        if (rows.isEmpty) {
+          return const Center(child: Text('No labour report data.'));
+        }
         return ListView(children: [
           for (final item in rows)
             Card(child: ListTile(
