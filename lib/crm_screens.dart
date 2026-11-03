@@ -114,6 +114,8 @@ class _CrmScreenState extends State<CrmScreen> {
                   final lead = leads[index];
                   final id = numberOf(lead['id']);
                   return Card(child: ListTile(
+                    leading: CircleAvatar(backgroundColor: BmColors.blue.withValues(alpha: .12),
+                      child: const Icon(Icons.person_outline_rounded, color: BmColors.blue)),
                     title: Text(displayLeadName(lead)),
                     subtitle: Text("${lead['phone_number'] ?? ''} · ${lead['follow_up'] ?? 'No follow-up'}"),
                     trailing: const Icon(Icons.chevron_right),
