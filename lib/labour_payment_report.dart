@@ -71,10 +71,10 @@ class _LabourPaymentReportState extends State<LabourPaymentReport> {
           final data = snapshot.data!['data'];
           final map = objectOf(data);
           final rows = data is List ? listOf(data).map(objectOf).toList()
-              : listOf(map['rows']).map(objectOf).toList();
+              : listOf(map['items']).map(objectOf).toList();
           return ListView(children: [
             for (final entry in map.entries)
-              if (entry.value is! List && entry.value is! Map)
+              if (entry.key != 'attendance_ids' && entry.value is! List && entry.value is! Map)
                 ListTile(title: Text(entry.key.replaceAll('_', ' ')),
                   trailing: Text('${entry.value ?? '—'}')),
             for (final row in rows)
