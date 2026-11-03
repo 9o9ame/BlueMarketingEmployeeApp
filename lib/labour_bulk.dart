@@ -39,7 +39,9 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
       'per_page': '100',
       'page': page.toString(),
     });
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> submit() async {
