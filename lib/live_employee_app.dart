@@ -101,7 +101,7 @@ class BlueMarketingLiveApp extends StatefulWidget {
   State<BlueMarketingLiveApp> createState() => _BlueMarketingLiveAppState();
 }
 
-class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
+class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with WidgetsBindingObserver {
   late final ApiClient api = ApiClient(apiHost);
   Map<String, dynamic>? profile;
   String? error;
@@ -112,11 +112,68 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
   bool canBiometricLogin = false;
   String? rememberedEmail;
   final biometric = BiometricUnlock();
+  bool _biometricPromptInProgress = false;
+  bool _lockOnResume = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     restore();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      if (biometricsEnabled && profile != null && !_biometricPromptInProgress) {
+        _lockOnResume = true;
+      }
+    } else if (state == AppLifecycleState.resumed && _lockOnResume &&
+        biometricsEnabled && profile != null && !_biometricPromptInProgress) {
+      _lockOnResume = false;
+      _unlockOnResume();
+    }
+  }
+
+  Future<bool> _verifyOnDevice() async {
+    if (_biometricPromptInProgress) {
+      return false;
+    }
+    _biometricPromptInProgress = true;
+    try {
+      return await biometric.verify();
+    } finally {
+      _biometricPromptInProgress = false;
+    }
+  }
+
+  Future<void> _unlockOnResume() async {
+    final selected = projectId;
+    final wasChosen = projectChosen;
+    setState(() { loading = true; profile = null; error = null; });
+    try {
+      if (await _verifyOnDevice()) {
+        await _fetchCurrentUser();
+        if (selected != null && listOf(profile?['projects'])
+            .map(objectOf).any((p) => numberOf(p['id']) == selected)) {
+          projectId = selected;
+          projectChosen = wasChosen;
+        }
+      } else {
+        error = 'Unlock cancelled. Use fingerprint again or sign in.';
+      }
+    } on ApiRequestException catch (requestError) {
+      if (requestError.statusCode == 401) {
+        await _invalidateExpiredToken();
+      }
+      error = requestError.message;
+    } catch (_) {
+      error = 'Unable to unlock. Retry fingerprint or use your password.';
+    } finally {
+      if (mounted) {
+        setState(() => loading = false);
+      }
+    }
   }
 
   void setProfile(Map<String, dynamic> data) {
@@ -138,7 +195,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
   }
 
   Future<void> configureBiometrics(bool enabled) async {
-    if (enabled && !await biometric.verify()) {
+    if (enabled && !await _verifyOnDevice()) {
       throw Exception('Fingerprint or face verification was not completed.');
     }
     await tokenStorage.write(key: biometricFlagKey,
@@ -171,7 +228,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
       api.token = await tokenStorage.read(key: tokenKey);
       canBiometricLogin = biometricsEnabled && api.token != null;
       if (api.token != null) {
-        if (!biometricsEnabled || await biometric.verify()) {
+        if (!biometricsEnabled || await _verifyOnDevice()) {
           await _fetchCurrentUser();
         } else {
           // Do NOT delete the token or turn off the user's setting.
@@ -198,7 +255,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     }
     setState(() { loading = true; error = null; });
     try {
-      if (!await biometric.verify()) {
+      if (!await _verifyOnDevice()) {
         error = 'Fingerprint verification was cancelled or failed.';
       } else {
         await _fetchCurrentUser();
@@ -270,6 +327,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     api.close();
     super.dispose();
   }
