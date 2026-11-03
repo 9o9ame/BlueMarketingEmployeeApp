@@ -81,7 +81,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
         ],
       ),
     );
-    if (accepted != true || !mounted) return;
+    if (accepted != true || !mounted) {
+      return;
+    }
     setState(() { saving = true; issue = null; });
     try {
       await widget.api.call('POST', 'stock/entries/${widget.flow.toLowerCase()}',
@@ -102,9 +104,13 @@ class _StockEntryFormState extends State<StockEntryForm> {
         });
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
-      if (mounted) setState(() => issue = '$error');
+      if (mounted) {
+        setState(() => issue = '$error');
+      }
     } finally {
-      if (mounted) setState(() => saving = false);
+      if (mounted) {
+        setState(() => saving = false);
+      }
     }
   }
 
@@ -114,7 +120,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
     body: FutureBuilder<Map<String, dynamic>>(
       future: catalog,
       builder: (context, snapshot) {
-        if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
+        if (snapshot.hasError) {
+          return Center(child: Text('${snapshot.error}'));
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -139,7 +147,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
                 final next = await showDatePicker(context: context,
                   initialDate: day, firstDate: DateTime(2020),
                   lastDate: DateTime(2100));
-                if (next != null) setState(() => day = next);
+                if (next != null) {
+                  setState(() => day = next);
+                }
               },
             ),
             const SizedBox(height: 12),
