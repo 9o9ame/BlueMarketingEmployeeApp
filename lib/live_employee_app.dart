@@ -8,7 +8,6 @@ import 'stock_screens.dart';
 import 'labour_screens.dart';
 import 'approval_screens.dart';
 import 'project_reports.dart';
-import 'dashboard_metrics.dart';
 import 'premium_design.dart';
 
 const apiHost = String.fromEnvironment('API_BASE_URL',
@@ -365,7 +364,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
         backgroundColor: BmColors.blue, foregroundColor: Colors.white),
       pageTransitionsTheme: const PageTransitionsTheme(builders: {
         TargetPlatform.android: ZoomPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
       }),
       inputDecorationTheme: InputDecorationTheme(
         filled: true, fillColor: Colors.white,
