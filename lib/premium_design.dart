@@ -283,10 +283,8 @@ class _BmDashboardState extends State<BmDashboard> {
           onRefresh: () async {
             reload();
             try {
-              await Future.wait([
-                if (summary != null) summary!,
-                if (today != null) today!,
-              ]);
+              await Future.wait([summary, today]
+                .whereType<Future<Map<String, dynamic>>>());
             } catch (_) { /* individual API cards surface errors */ }
           },
           child: ListView(physics: const AlwaysScrollableScrollPhysics(),
