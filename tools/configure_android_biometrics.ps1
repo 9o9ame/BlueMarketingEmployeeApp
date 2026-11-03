@@ -17,7 +17,7 @@ if ($xml -notmatch '<manifest\b') { throw 'Invalid AndroidManifest.xml' }
 $quote = [char]34
 if ($xml -notmatch 'android.permission.USE_BIOMETRIC') {
   $permission = [Environment]::NewLine + '    <uses-permission android:name=' + $quote + 'android.permission.USE_BIOMETRIC' + $quote + ' />'
-  $xml = [regex]::Replace($xml, '(<manifest\b[^>]*>)', '$1' + $permission, 1)
+  $xml = ([regex]'(<manifest\b[^>]*>)').Replace($xml, ('$1' + $permission), 1)
 }
 if ($xml -notmatch 'android.permission.INTERNET') {
   $permission = [Environment]::NewLine + '    <uses-permission android:name=' + $quote + 'android.permission.INTERNET' + $quote + ' />'
