@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
+import 'premium_design.dart';
 
 bool mayReadApprovals(Set<String> permissions, Set<String> roles) =>
   permissions.contains('direct-update') ||
@@ -34,8 +35,12 @@ class _ApprovalWorkspaceState extends State<ApprovalWorkspace> {
   }
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: BmColors.background,
     appBar: AppBar(title: const Text('Approvals')),
     body: Column(children: [
+      const BmModuleHero(title: 'Approvals & Tasks',
+        subtitle: 'Review requests and inspect changes before deciding',
+        icon: Icons.task_alt_rounded, accent: BmColors.purple),
       Padding(padding: const EdgeInsets.all(12), child:
         DropdownButtonFormField<String>(
           initialValue: status,
