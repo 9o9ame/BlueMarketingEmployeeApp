@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
 import 'labour_bulk.dart';
+import 'labour_payment_report.dart';
 
 class LabourWorkspace extends StatefulWidget {
   const LabourWorkspace({super.key, required this.api, required this.projectId,
@@ -128,11 +129,24 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
           ]);
         },
       )),
-      Padding(padding: const EdgeInsets.all(10), child: OutlinedButton(
-        onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
-          builder: (_) => LabourReportScreen(api: widget.api, projectId: widget.projectId))),
-        child: const Text('Attendance report'),
-      )),
+      Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(children: [
+          Expanded(child: OutlinedButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
+              builder: (_) => LabourReportScreen(
+                api: widget.api, projectId: widget.projectId))),
+            child: const Text('Attendance report'),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: OutlinedButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
+              builder: (_) => LabourPaymentReport(
+                api: widget.api, projectId: widget.projectId))),
+            child: const Text('Payment summary'),
+          )),
+        ]),
+      ),
     ]),
   );
 }
