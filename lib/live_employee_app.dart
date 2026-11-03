@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'biometric_unlock.dart';
+import 'crm_screens.dart';
 
 const apiHost = String.fromEnvironment('API_BASE_URL',
     defaultValue: 'https://dev.bluemarketing.com.pk');
@@ -353,6 +354,16 @@ class HomeScreen extends StatelessWidget {
     if (project && projectId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Select a project first.')));
+      return;
+    }
+    if (path == 'crm/leads' && projectId != null) {
+      final permissions = listOf(profile['permissions']).map((e) => e.toString()).toSet();
+      final roles = listOf(profile['role_names']).map((e) => e.toString()).toSet();
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) => CrmScreen(
+        api: api, projectId: projectId!,
+        permissions: roles.contains('superadmin')
+          ? {...permissions, 'create lead', 'update lead'} : permissions,
+      )));
       return;
     }
     Navigator.push(context, MaterialPageRoute<void>(builder: (_) => DataScreen(
