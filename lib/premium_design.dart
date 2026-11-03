@@ -609,8 +609,10 @@ class _BmSettingsState extends State<BmSettings> {
       const BmSoftCard(child: Row(children: [
         Icon(Icons.lock_outline_rounded, color: BmColors.teal),
         SizedBox(width: 12),
-        Expanded(child: Text('Your password is never saved. '
-          'Only your secure login session is remembered.',
+        Expanded(child: Text('Recent account emails are remembered. '
+          'Passwords are stored encrypted only after you opt in '
+          'and verify biometrics. Turning biometric sign-in off '
+          'deletes those saved passwords.',
           style: TextStyle(color: BmColors.muted))),
       ])),
     ]),
