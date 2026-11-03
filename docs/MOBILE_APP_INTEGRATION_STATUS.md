@@ -1,46 +1,45 @@
-# Consolidated employee mobile app implementation
+# Employee Mobile — November 3 integrated fixes
 
-Repository: `9o9ame/BlueMarketingEmployeeApp`
-Backend: existing BlueMarketing Laravel API (NO Laravel changes).
+Repository: 9o9ame/BlueMarketingEmployeeApp (Flutter only)
+Laravel backend: unchanged.
 
-## Implemented in Flutter
-- Real Sanctum login against `POST /api/v1/mobile/auth/login`.
-- Persistent token using `flutter_secure_storage`, current-user restoration via `GET auth/me` and logout.
-- Permission-filtered module navigation and project selection.
-- Staff attendance today/history, server-validated check-in/check-out with explicit confirmation.
-- Read-only remote data screens: CRM leads/summary, labour, stock entries/items/report, project/inventory reports and approvals.
-- Network loading, retry, and no-data states.
-- No fake data or demo login in active entry point.
+## Implemented
+- Fixed widget-test timeout by rendering LoginScreen directly, without invoking an asynchronous secure-storage platform call inside the test.
+- Added a two-project selector widget test.
+- Cleaned up reported string concatenation / conditional-braces lints.
+- Default API host: https://dev.bluemarketing.com.pk (overridable using --dart-define=API_BASE_URL=https://...).
+- Login screen asks for **email and password only**.
+- Single-project user enters dashboard directly; multi-project users always select a project before opening modules; available options come from the server's authenticated login response.
+- Added local_auth biometric opt-in switch inside dashboard; biometric unlock is checked on the next launch before reusing stored Sanctum token. Biometrics do not replace the server token or account permissions. Failed unlock requires sign-in again.
+- New-login account clears prior biometric opt-in. Logout clears token and biometric opt-in.
+- Kept existing attendance / CRM / project / stock / reports read APIs. Backend remains source of truth.
 
-## Scope / release restrictions
-- More comprehensive workflow UI remains outstanding: lead creation/update/follow-up, labour marking, stock in/out, approval approve/reject/preview, detailed booking/recovery charts, notifications, rich search/pagination.
-- Some role permission labels are provisional; reconcile against the Laravel controllers before production rollout. The backend remains the security authority.
-- Generic read-only data renderer is an initial integration screen, not the final module UI.
-- Live PHP/API integration and physical-device verification have NOT run from this GitHub environment.
-- A selected project is required for project-scoped screens.
-- HTTPS required for API calls; do not use a production login against an untrusted server.
+## Android-native setup (required once on existing locally generated Android project)
 
-## One-time local dependencies
-The existing `pubspec.yaml` was generated locally and has not yet been uploaded to GitHub. Before building:
+The Android project and pubspec.yaml currently exist locally on the user's Windows PC and are not in the GitHub repo. This repository includes tools/configure_android_biometrics.ps1 to edit the local MainActivity to FlutterFragmentActivity and add USE_BIOMETRIC and INTERNET permissions.
+
+Run on Windows PowerShell from D:\Projects\BlueMarketingEmployeeApp:
 
 ```powershell
-cd D:\Projects\BlueMarketingEmployeeApp
 git pull --ff-only origin main
-flutter pub add http flutter_secure_storage
+flutter pub add local_auth
+.\tools\configure_android_biometrics.ps1
 flutter analyze
 flutter test
 ```
 
-## Debug build
+Review the generated AndroidManifest and Kotlin diff before building. If a widget test still fails, share the complete output before creating another APK.
 
+## Single consolidated debug APK (after tests pass)
 ```powershell
-flutter build apk --debug --dart-define=API_BASE_URL=https://YOUR-LARAVEL-DOMAIN
+flutter build apk --debug --dart-define=API_BASE_URL=https://dev.bluemarketing.com.pk
 & "D:\Android\Sdk\platform-tools\adb.exe" -s d2b1f972 install --no-streaming -r "build\app\outputs\flutter-apk\app-debug.apk"
 ```
 
-Keep real credentials out of screenshots and Git. If the HTTPS backend is not configured, the login button remains disabled.
+The generated `pubspec.yaml`, platform folders and dependencies should be committed to this standalone repository after validation. Do not commit credentials or production tokens.
 
-For signed Android release builds verify main AndroidManifest INTERNET permission, secure network policies, app signing, token lifecycle, server access rules and comprehensive integration tests.
-
-## Test/build status
-Code committed remotely. No claim of successful Flutter analysis or build until the local Windows SDK runs the commands.
+## Unverified
+- Flutter analyze/test/device build were not executed in this GitHub-only environment.
+- Live API availability and user login have not been confirmed with real credentials. The public dev URL is configured, not verified by authenticated smoke tests.
+- Which Android face biometric types are usable depends on device biometric enrollment and security classification. Android may offer fingerprint only.
+- Detailed role permission labels, project membership and module workflows require a server-connected QA pass; advanced CRM/stock/approvals writes are not complete.
