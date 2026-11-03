@@ -36,9 +36,13 @@ class RememberedAccounts {
   Future<List<String>> list() async {
     try {
       final text = await storage.read(key: historyKey);
-      if (text == null || text.isEmpty) return [];
+      if (text == null || text.isEmpty) {
+        return [];
+      }
       final decoded = jsonDecode(text);
-      if (decoded is! List) return [];
+      if (decoded is! List) {
+        return [];
+      }
       final values = decoded.whereType<String>().map(normalized)
           .where((email) => email.isNotEmpty).toList();
       return values.toSet().take(10).toList();
