@@ -386,6 +386,12 @@ class HomeScreen extends StatelessWidget {
           permissions: permissions, roles: roles)));
       return;
     }
+    if (path == 'reports/inventory' && projectId != null) {
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
+        StockRecords(api: api, projectId: projectId!,
+          path: 'reports/inventory', title: 'Inventory report')));
+      return;
+    }
     if (path == 'reports/projects' && projectId != null) {
       Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
         ProjectReportsHome(api: api, projectId: projectId!,
