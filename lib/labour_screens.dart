@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
+import 'labour_bulk.dart';
 
 class LabourWorkspace extends StatefulWidget {
   const LabourWorkspace({super.key, required this.api, required this.projectId,
@@ -38,7 +39,22 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Labour attendance')),
+    appBar: AppBar(
+      title: const Text('Labour attendance'),
+      actions: [
+        if (mayMark)
+          IconButton(
+            tooltip: 'Bulk attendance',
+            icon: const Icon(Icons.groups_outlined),
+            onPressed: () async {
+              final saved = await Navigator.push<bool>(context,
+                MaterialPageRoute(builder: (_) => LabourBulkMark(
+                  api: widget.api, projectId: widget.projectId)));
+              if (saved == true) load();
+            },
+          ),
+      ],
+    ),
     body: Column(children: [
       Padding(padding: const EdgeInsets.all(12), child: Row(children: [
         Expanded(child: TextField(controller: search,
