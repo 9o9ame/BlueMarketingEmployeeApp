@@ -111,7 +111,7 @@ class _StockRecordsState extends State<StockRecords> {
           return Column(children: [
             if (isReport)
               Padding(padding: const EdgeInsets.all(12), child:
-                Text('Items: '+ (objectOf(report['kpi'])['items']?.toString() ?? '0'))),
+                Text("Items: ${objectOf(report['kpi'])['items'] ?? '0'}")),
             Expanded(child: RefreshIndicator(
               onRefresh: () async { load(); await result; },
               child: ListView.builder(
@@ -124,16 +124,12 @@ class _StockRecordsState extends State<StockRecords> {
                   final isEntry = widget.path == 'stock/entries';
                   final title = isEntry ? row['slip_no'] : row['name'] ?? row['item_name'];
                   final details = isEntry
-                    ? (row['flow']?.toString() ?? '') + ' · ' +
-                      (objectOf(row['item'])['name']?.toString() ?? '') +
-                      ' · Qty ' + (row['qty']?.toString() ?? '—')
+                    ? "${row['flow'] ?? ''} · ${objectOf(row['item'])['name'] ?? ''} · Qty ${row['qty'] ?? '—'}"
                     : isReport
-                      ? 'Available: ' + (row['available_qty']?.toString() ?? '—')
+                      ? "Available: ${row['available_qty'] ?? '—'}"
                       : widget.path == 'stock/items'
-                        ? 'On hand: ' + (row['available_qty']?.toString() ?? '—') +
-                          ' ' + (row['unit']?.toString() ?? '')
-                        : (row['type']?.toString() ?? '') + ' · ' +
-                          (row['mobile']?.toString() ?? '');
+                        ? "On hand: ${row['available_qty'] ?? '—'} ${row['unit'] ?? ''}"
+                        : "${row['type'] ?? ''} · ${row['mobile'] ?? ''}";
                   return Card(child: ListTile(
                     title: Text(title?.toString() ?? 'Record'),
                     subtitle: Text(details),
@@ -150,7 +146,7 @@ class _StockRecordsState extends State<StockRecords> {
               children: [
                 TextButton(onPressed: page > 1 ? () { page--; load(); } : null,
                   child: const Text('Previous')),
-                Text('Page ' + page.toString() + ' / ' + last.toString()),
+                Text('Page $page / $last'),
                 TextButton(onPressed: page < last ? () { page++; load(); } : null,
                   child: const Text('Next')),
               ]),
@@ -173,7 +169,7 @@ class StockDetail extends StatelessWidget {
     appBar: AppBar(title: const Text('Stock detail')),
     body: FutureBuilder<Map<String, dynamic>?>(
       future: entryId == null ? Future.value(null) : api.call('GET',
-        'stock/entries/' + entryId.toString(),
+        'stock/entries/$entryId',
         query: {'project_id': projectId.toString()}),
       builder: (context, snap) {
         if (snap.hasError) {
