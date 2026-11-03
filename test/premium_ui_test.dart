@@ -8,6 +8,31 @@ import 'package:bluemarketing_employee/live_employee_app.dart';
 import 'package:bluemarketing_employee/premium_design.dart';
 
 void main() {
+  testWidgets('Recent account chooser shows most recent first and selects it',
+      (tester) async {
+    String? selected;
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(
+      error: null,
+      onLogin: (_, _) async {},
+      savedAccounts: const ['recent@example.com', 'older@example.com'],
+      onSavedAccount: (email) async { selected = email; },
+      showFingerprint: true,
+      onFingerprint: () {},
+    )));
+    await tester.tap(find.byTooltip('Choose recent account'));
+    await tester.pumpAndSettle();
+    final recent = find.text('recent@example.com');
+    final older = find.text('older@example.com');
+    expect(recent, findsOneWidget);
+    expect(older, findsOneWidget);
+    await tester.tap(older);
+    await tester.pumpAndSettle();
+    expect(selected, 'older@example.com');
+    expect(tester.widget<TextFormField>(
+      find.byType(TextFormField).first).controller?.text, 'older@example.com');
+    expect(find.text('Sign in with fingerprint / face'), findsOneWidget);
+  });
+
   testWidgets('Premium card supports ListTile and SwitchListTile ink',
       (tester) async {
     bool switched = false;
