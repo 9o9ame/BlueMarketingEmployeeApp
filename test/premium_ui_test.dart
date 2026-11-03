@@ -8,6 +8,32 @@ import 'package:bluemarketing_employee/live_employee_app.dart';
 import 'package:bluemarketing_employee/premium_design.dart';
 
 void main() {
+  testWidgets('Premium card supports ListTile and SwitchListTile ink',
+      (tester) async {
+    bool switched = false;
+    await tester.pumpWidget(MaterialApp(home: Scaffold(
+      body: Column(children: [
+        BmSoftCard(padding: EdgeInsets.zero, child: ListTile(
+          title: const Text('Card item'), onTap: () {})),
+        const SizedBox(height: 14),
+        BmSoftCard(child: SwitchListTile(
+          title: const Text('Device security'),
+          value: false,
+          onChanged: (value) => switched = value,
+        )),
+      ]),
+    )));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Card item'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Device security'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(switched, isTrue);
+  });
+
   testWidgets('Premium login shows biometric retry but no social login',
       (tester) async {
     var attempts = 0;
