@@ -25,7 +25,9 @@ class _LabourPaymentReportState extends State<LabourPaymentReport> {
         'date_from': dateValue(from),
         'date_to': dateValue(to),
       });
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> pickDates() async {
