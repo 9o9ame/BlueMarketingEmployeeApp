@@ -125,6 +125,22 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
     preview = widget.api.call('GET', 'approvals/${widget.id}/preview');
   }
   Future<void> submit(String action) async {
+    // Never act on a pending record without a successful, nonempty diff preview.
+    try {
+      final loaded = await preview;
+      final changes = listOf(objectOf(loaded?['data'])['changes']);
+      if (changes.isEmpty) {
+        throw StateError('No changes available to review.');
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => failure = 'Cannot confirm approval preview: $error');
+      }
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     final yes = await showDialog<bool>(context: context, builder: (ctx) =>
       AlertDialog(
         title: Text(action == 'approve' ? 'Approve request?' : 'Reject request?'),
