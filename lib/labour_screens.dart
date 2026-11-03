@@ -50,7 +50,9 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
               final saved = await Navigator.push<bool>(context,
                 MaterialPageRoute(builder: (_) => LabourBulkMark(
                   api: widget.api, projectId: widget.projectId)));
-              if (saved == true) load();
+              if (saved == true) {
+                load();
+              }
             },
           ),
       ],
@@ -227,7 +229,11 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
           DropdownMenuItem(value: 'present', child: Text('Present')),
           DropdownMenuItem(value: 'absent', child: Text('Absent')),
         ],
-        onChanged: (value) { if (value != null) setState(() => status = value); },
+        onChanged: (value) {
+          if (value != null) {
+            setState(() => status = value);
+          }
+        },
         decoration: const InputDecoration(labelText: 'Attendance status'),
       ),
       if (status == 'present') TextField(controller: hours,
