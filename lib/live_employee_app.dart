@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'biometric_unlock.dart';
 
-const apiHost = String.fromEnvironment('API_BASE_URL');
+const apiHost = String.fromEnvironment('API_BASE_URL',
+    defaultValue: 'https://dev.bluemarketing.com.pk');
 const tokenStorage = FlutterSecureStorage();
 const tokenKey = 'bm_access_token';
+const biometricFlagKey = 'bm_biometric_enabled';
 
 Map<String, dynamic> objectOf(dynamic raw) => raw is Map
     ? raw.map((key, value) => MapEntry(key.toString(), value))
@@ -24,12 +27,12 @@ class ApiClient {
       throw const FormatException('Set HTTPS API_BASE_URL to use the live app.');
     }
     final base = host.replaceFirst(RegExp(r'/$'), '');
-    final uri = Uri.parse(base + '/api/v1/mobile/' + endpoint)
+    final uri = Uri.parse('$base/api/v1/mobile/$endpoint')
         .replace(queryParameters: query);
     final request = http.Request(method, uri)
       ..headers['Accept'] = 'application/json'
       ..headers['Content-Type'] = 'application/json';
-    if (token != null) request.headers['Authorization'] = 'Bearer ' + token!;
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
     if (data != null) request.body = jsonEncode(data);
     final response = await http.Response.fromStream(
         await client.send(request).timeout(const Duration(seconds: 30)));
@@ -85,6 +88,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
   String? error;
   int? projectId;
   bool loading = true;
+  bool biometricsEnabled = false;
+  bool projectChosen = false;
+  final biometric = BiometricUnlock();
 
   @override
   void initState() {
@@ -94,23 +100,43 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
 
   void setProfile(Map<String, dynamic> data) {
     profile = data;
-    projectId = numberOf(data['selected_project_id']);
     final projects = listOf(data['projects']);
-    if (projectId == null && projects.length == 1) {
-      projectId = numberOf(objectOf(projects.first)['id']);
+    // Every multi-project user explicitly chooses the working project.
+    projectChosen = projects.length <= 1;
+    projectId = projectChosen && projects.isNotEmpty
+        ? numberOf(objectOf(projects.first)['id']) : null;
+  }
+
+  Future<void> chooseProject(int id) async {
+    final allowed = listOf(profile?['projects'])
+        .map(objectOf).any((project) => numberOf(project['id']) == id);
+    if (!allowed) return;
+    setState(() { projectId = id; projectChosen = true; });
+  }
+
+  Future<void> configureBiometrics(bool enable) async {
+    if (enable && !await biometric.verify()) {
+      throw Exception('Biometric verification failed or is unavailable.');
     }
+    await tokenStorage.write(key: biometricFlagKey, value: enable ? '1' : '0');
+    if (mounted) setState(() => biometricsEnabled = enable);
   }
 
   Future<void> restore() async {
     try {
+      biometricsEnabled = (await tokenStorage.read(key: biometricFlagKey)) == '1';
       api.token = await tokenStorage.read(key: tokenKey);
       if (api.token != null) {
+        if (biometricsEnabled && !await biometric.verify()) {
+          throw Exception('Session unlock was not completed.');
+        }
         final response = await api.call('GET', 'auth/me');
         setProfile(objectOf(response['data']));
       }
     } catch (_) {
       api.token = null;
       await tokenStorage.delete(key: tokenKey);
+      // Require email/password again when biometric unlock cannot complete.
     }
     if (mounted) setState(() => loading = false);
   }
@@ -141,7 +167,8 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     }
     api.token = null;
     await tokenStorage.delete(key: tokenKey);
-    if (mounted) setState(() { profile = null; projectId = null; loading = false; });
+    await tokenStorage.delete(key: biometricFlagKey);
+    if (mounted) setState(() { profile = null; projectId = null; projectChosen = false; biometricsEnabled = false; loading = false; });
   }
 
   @override
@@ -166,12 +193,16 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
         ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : profile == null
             ? LoginScreen(onLogin: login, error: error)
-            : HomeScreen(
+            : !projectChosen
+                ? ProjectSelectionScreen(profile: profile!, onSelect: chooseProject, onLogout: logout)
+                : HomeScreen(
                 api: api,
                 profile: profile!,
                 projectId: projectId,
                 onProject: (value) => setState(() => projectId = value),
                 onLogout: logout,
+                biometricsEnabled: biometricsEnabled,
+                onBiometricsChanged: configureBiometrics,
               ),
   );
 }
@@ -254,16 +285,66 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 }
 
+class ProjectSelectionScreen extends StatelessWidget {
+  const ProjectSelectionScreen({
+    super.key, required this.profile, required this.onSelect,
+    required this.onLogout,
+  });
+  final Map<String, dynamic> profile;
+  final Future<void> Function(int) onSelect;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final projects = listOf(profile['projects']).map(objectOf).toList();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Choose your project'),
+        actions: [
+          IconButton(onPressed: onLogout, icon: const Icon(Icons.logout)),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text('Select the project you want to work in.',
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          if (projects.isEmpty)
+            const ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text('No active projects assigned'),
+              subtitle: Text('Contact your administrator.'),
+            ),
+          for (final project in projects)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.apartment_outlined),
+                title: Text(project['name']?.toString() ?? 'Project'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: numberOf(project['id']) == null
+                    ? null : () => onSelect(numberOf(project['id'])!),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key, required this.api, required this.profile,
     required this.projectId, required this.onProject, required this.onLogout,
+    required this.biometricsEnabled, required this.onBiometricsChanged,
   });
   final ApiClient api;
   final Map<String, dynamic> profile;
   final int? projectId;
   final ValueChanged<int?> onProject;
   final VoidCallback onLogout;
+  final bool biometricsEnabled;
+  final Future<void> Function(bool) onBiometricsChanged;
 
   void open(BuildContext context, String title, String path, {bool project = true}) {
     if (project && projectId == null) {
@@ -333,6 +414,22 @@ class HomeScreen extends StatelessWidget {
                 project: module.needsProject),
           )),
         const SizedBox(height: 15),
+        Card(child: SwitchListTile.adaptive(
+          title: const Text('Fingerprint / Face unlock'),
+          subtitle: const Text('Optional local unlock on your next app launch'),
+          value: biometricsEnabled,
+          onChanged: (enabled) async {
+            try {
+              await onBiometricsChanged(enabled);
+            } catch (error) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$error')),
+                );
+              }
+            }
+          },
+        )),
         const Text('Data and permissions come from your BlueMarketing account.',
             style: TextStyle(color: Colors.blueGrey, fontSize: 12)),
       ]),
@@ -366,7 +463,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Confirm ' + action),
+        title: Text('Confirm $action'),
         content: const Text('This action will record real attendance.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -377,13 +474,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (yes != true || !mounted) return;
     setState(() => posting = true);
     try {
-      await widget.api.call('POST', 'attendance/staff/' + action,
+      await widget.api.call('POST', 'attendance/staff/$action',
           data: {'project_id': widget.projectId});
       reload();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
     } finally {
       if (mounted) setState(() => posting = false);
     }
@@ -406,8 +505,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Text(data['status']?.toString() ?? 'Unknown',
                   style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 12),
-              Text('Check in: ' + (data['check_in_time']?.toString() ?? '—')),
-              Text('Check out: ' + (data['check_out_time']?.toString() ?? '—')),
+              Text("Check in: ${data['check_in_time'] ?? '—'}"),
+              Text("Check out: ${data['check_out_time'] ?? '—'}"),
             ]),
           )),
           const SizedBox(height: 14),
