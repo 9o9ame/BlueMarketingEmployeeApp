@@ -388,10 +388,14 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
 
   Future<void> loginRemembered(String email, String password, bool remember) async {
     await login(email, password);
-    if (!remember || profile == null) return;
+    if (!remember || profile == null) {
+      return;
+    }
     // Never save passwords silently: this checkbox requires explicit opt-in,
     // and a successful device biometric prompt gates the first save.
-    if (!await _verifyOnDevice()) return;
+    if (!await _verifyOnDevice()) {
+      return;
+    }
     try {
       await accountVault.rememberPassword(email, password);
       await tokenStorage.write(key: biometricFlagKey, value: '1');
@@ -524,7 +528,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool saveForFingerprint = false;
 
   Future<void> chooseAccount() async {
-    if (widget.savedAccounts.isEmpty) return;
+    if (widget.savedAccounts.isEmpty) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     final chosen = await showModalBottomSheet<String>(
       context: context, showDragHandle: true, isScrollControlled: true,
@@ -548,7 +554,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ]),
       )),
     );
-    if (chosen == null || !mounted) return;
+    if (chosen == null || !mounted) {
+      return;
+    }
     email.text = chosen;
     password.clear();
     setState(() {});
