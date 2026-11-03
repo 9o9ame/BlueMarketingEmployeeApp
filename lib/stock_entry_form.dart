@@ -228,7 +228,9 @@ String stockDate(DateTime date) =>
     }
     final parts = value.split('.');
     final major = int.tryParse(parts.first);
-    if (major == null) return null;
+    if (major == null) {
+      return null;
+    }
     final fractional = parts.length == 1 ? 0 :
         int.parse(parts.last.padRight(2, '0'));
     return major * 100 + fractional;
