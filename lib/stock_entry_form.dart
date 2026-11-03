@@ -3,6 +3,11 @@ import 'live_employee_app.dart';
 
 /// Stock transactions can post accounting ledger entries. A single
 /// confirmation is required; the server validates balances and permissions.
+class StockEntryFormValidation {
+  static String? checkQuantity(String? text) => _StockEntryFormState.checkQuantity(text);
+  static String? checkRate(String? text) => _StockEntryFormState.checkRate(text);
+}
+
 class StockEntryForm extends StatefulWidget {
   const StockEntryForm({
     super.key, required this.api, required this.projectId, required this.flow,
