@@ -180,12 +180,12 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted) setState(() {
-        => error = e.toString());
+      if (mounted) {
+        setState(() => error = e.toString());
       }
     } finally {
-      if (mounted) setState(() {
-        => saving = false);
+      if (mounted) {
+        setState(() => saving = false);
       }
     }
   }
@@ -201,8 +201,8 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
       OutlinedButton.icon(onPressed: () async {
         final next = await showDatePicker(context: context,
           initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
-        if (next != null) setState(() {
-          => date = next);
+        if (next != null) {
+          setState(() => date = next);
         }
       }, icon: const Icon(Icons.date_range), label: Text(dateValue)),
       const SizedBox(height: 14),
