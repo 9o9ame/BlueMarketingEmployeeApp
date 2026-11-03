@@ -74,7 +74,9 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
           if (entry.value == 'present') 'hours': regularHours,
         }).toList(),
       });
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => error = '$e');
