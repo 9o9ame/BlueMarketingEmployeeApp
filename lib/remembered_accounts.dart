@@ -26,7 +26,9 @@ class RememberedAccounts {
       if (clean.isNotEmpty && !entries.contains(clean)) {
         entries.add(clean);
       }
-      if (entries.length == 10) break;
+      if (entries.length == 10) {
+        break;
+      }
     }
     return entries;
   }
@@ -46,8 +48,15 @@ class RememberedAccounts {
   }
 
   Future<void> recordLogin(String email) async {
-    final accounts = recentFirst(await list(), email);
+    final previous = await list();
+    final accounts = recentFirst(previous, email);
     await storage.write(key: historyKey, value: jsonEncode(accounts));
+    // Never keep credential secrets for an account dropped from the history.
+    for (final oldEmail in previous) {
+      if (!accounts.contains(oldEmail)) {
+        await storage.delete(key: credentialKey(oldEmail));
+      }
+    }
   }
 
   Future<void> rememberPassword(String email, String password) async {
