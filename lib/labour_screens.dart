@@ -81,8 +81,7 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
                   final today = objectOf(labour['today_attendance']);
                   return Card(child: ListTile(
                     title: Text(labour['name']?.toString() ?? 'Labour'),
-                    subtitle: Text((labour['role']?.toString() ?? '') +
-                      " · Today: ${today['status'] ?? 'Unmarked'}"),
+                    subtitle: Text("${labour['role'] ?? ''} · Today: ${today['status'] ?? 'Unmarked'}"),
                     trailing: mayMark ? const Icon(Icons.edit_calendar_outlined) : null,
                     onTap: mayMark && numberOf(labour['id']) != null
                       ? () async {
