@@ -96,8 +96,12 @@ class _StockRecordsState extends State<StockRecords> {
       Expanded(child: FutureBuilder<Map<String, dynamic>>(
         future: result,
         builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text(snap.error.toString()));
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          if (snap.hasError) {
+            return Center(child: Text(snap.error.toString()));
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final data = snap.data!['data'];
           final meta = objectOf(snap.data!['meta']);
           final report = objectOf(data);
@@ -113,7 +117,9 @@ class _StockRecordsState extends State<StockRecords> {
               child: ListView.builder(
                 itemCount: rows.isEmpty ? 1 : rows.length,
                 itemBuilder: (context, index) {
-                  if (rows.isEmpty) return const ListTile(title: Text('No records found.'));
+                  if (rows.isEmpty) {
+                    return const ListTile(title: Text('No records found.'));
+                  }
                   final row = rows[index];
                   final isEntry = widget.path == 'stock/entries';
                   final title = isEntry ? row['slip_no'] : row['name'] ?? row['item_name'];
@@ -170,7 +176,9 @@ class StockDetail extends StatelessWidget {
         'stock/entries/' + entryId.toString(),
         query: {'project_id': projectId.toString()}),
       builder: (context, snap) {
-        if (snap.hasError) return Center(child: Text(snap.error.toString()));
+        if (snap.hasError) {
+          return Center(child: Text(snap.error.toString()));
+        }
         if (snap.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
         }
