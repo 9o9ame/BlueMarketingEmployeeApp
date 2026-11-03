@@ -79,6 +79,8 @@ class _ApprovalWorkspaceState extends State<ApprovalWorkspace> {
                   final approval = approvals[index];
                   final id = numberOf(approval['id']);
                   return Card(child: ListTile(
+                    leading: CircleAvatar(backgroundColor: BmColors.purple.withValues(alpha: .12),
+                      child: const Icon(Icons.task_alt_rounded, color: BmColors.purple)),
                     title: Text(approval['table_label']?.toString() ??
                       approval['table']?.toString() ?? 'Approval'),
                     subtitle: Text("${approval['summary'] ?? ''}\n${approval['status'] ?? ''}"),
