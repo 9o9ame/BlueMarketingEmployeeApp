@@ -103,6 +103,7 @@ class BlueMarketingLiveApp extends StatefulWidget {
 
 class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with WidgetsBindingObserver {
   late final ApiClient api = ApiClient(apiHost);
+  final navigatorKey = GlobalKey<NavigatorState>();
   Map<String, dynamic>? profile;
   String? error;
   int? projectId;
@@ -148,6 +149,8 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
   }
 
   Future<void> _unlockOnResume() async {
+    // Close any sensitive module route before showing the biometric prompt.
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
     final selected = projectId;
     final wasChosen = projectChosen;
     setState(() { loading = true; profile = null; error = null; });
@@ -334,6 +337,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    navigatorKey: navigatorKey,
     title: 'BlueMarketing Employee',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
