@@ -3,10 +3,12 @@ import 'live_employee_app.dart';
 
 class ProjectReportsHome extends StatelessWidget {
   const ProjectReportsHome({super.key, required this.api,
-    required this.projectId, required this.permissions});
+    required this.projectId, required this.permissions, required this.roles});
   final ApiClient api;
   final int projectId;
   final Set<String> permissions;
+  final Set<String> roles;
+  bool get isAdmin => roles.contains('admin') || roles.contains('superadmin') || roles.contains('super-admin');
 
   void open(BuildContext context, String title, String suffix,
       {bool pagination = true}) {
@@ -25,13 +27,13 @@ class ProjectReportsHome extends StatelessWidget {
         title: const Text('Project summary'),
         onTap: () => open(context, 'Project summary', '', pagination: false),
       )),
-      if (permissions.contains('read plot'))
+      if (isAdmin || permissions.contains('read plot') || permissions.contains('view project report'))
         Card(child: ListTile(
           leading: const Icon(Icons.grid_on_outlined),
           title: const Text('Plots'),
           onTap: () => open(context, 'Project plots', '/plots'),
         )),
-      if (permissions.contains('read booking'))
+      if (isAdmin || permissions.contains('read plot') || permissions.contains('view booking report'))
         for (final item in const [
           ('Bookings', '/bookings', Icons.description_outlined),
           ('Recovery', '/recovery', Icons.payments_outlined),
