@@ -41,8 +41,8 @@ class _CrmScreenState extends State<CrmScreen> {
       if (search.text.trim().isNotEmpty) 'search': search.text.trim(),
       if (status != 'all') 'status': status,
     });
-    if (mounted) setState(() {
-      {});
+    if (mounted) {
+      setState(() {});
     }
   }
   Future<void> create() async {
@@ -153,8 +153,8 @@ class _LeadDetailState extends State<LeadDetail> {
   void initState() { super.initState(); load(); }
   void load() {
     data = widget.api.call('GET', 'crm/leads/${widget.id}');
-    if (mounted) setState(() {
-      {});
+    if (mounted) {
+      setState(() {});
     }
   }
   Future<void> form(Map<String, dynamic> lead, {bool followUp = false}) async {
@@ -262,8 +262,8 @@ class _LeadFormState extends State<LeadForm> {
     final d = await showDatePicker(context: context,
       initialDate: followUp ?? DateTime.now(),
       firstDate: DateTime(2020), lastDate: DateTime(2100));
-    if (d != null) setState(() {
-      => followUp = d);
+    if (d != null) {
+      setState(() => followUp = d);
     }
   }
   Future<void> save() async {
@@ -295,12 +295,12 @@ class _LeadFormState extends State<LeadForm> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted) setState(() {
-        => error = e.toString());
+      if (mounted) {
+        setState(() => error = e.toString());
       }
     } finally {
-      if (mounted) setState(() {
-        => busy = false);
+      if (mounted) {
+        setState(() => busy = false);
       }
     }
   }
@@ -371,12 +371,12 @@ class _FollowUpFormState extends State<FollowUpForm> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted) setState(() {
-        => error = e.toString());
+      if (mounted) {
+        setState(() => error = e.toString());
       }
     } finally {
-      if (mounted) setState(() {
-        => busy = false);
+      if (mounted) {
+        setState(() => busy = false);
       }
     }
   }
@@ -389,8 +389,8 @@ class _FollowUpFormState extends State<FollowUpForm> {
         onPressed: () async {
           final d = await showDatePicker(context: context,
             initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
-          if (d != null) setState(() {
-            => date = d);
+          if (d != null) {
+            setState(() => date = d);
           }
         },
       ),
