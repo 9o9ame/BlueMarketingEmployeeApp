@@ -14,9 +14,16 @@ class LabourBulkMark extends StatefulWidget {
 class _LabourBulkMarkState extends State<LabourBulkMark> {
   Future<Map<String, dynamic>>? labour;
   final selections = <int, String>{};
+  final hours = TextEditingController(text: '8');
   DateTime date = DateTime.now();
   bool saving = false;
   String? error;
+
+  @override
+  void dispose() {
+    hours.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -33,12 +40,18 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
       setState(() => error = 'Select at least one labourer.');
       return;
     }
+    final regularHours = double.tryParse(hours.text.trim());
+    if (regularHours == null || regularHours < 0 || regularHours > 24) {
+      setState(() => error = 'Hours must be between 0 and 24.');
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
         title: const Text('Confirm bulk attendance'),
         content: Text('Submit attendance for ${selections.length} selected workers '
-          'on ${bulkDate(date)}? Existing entries may require update permission.'),
+          'on ${bulkDate(date)}? Present workers: $regularHours hours each. '
+          'Existing entries may require update permission.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialog, false),
             child: const Text('Cancel')),
@@ -58,7 +71,7 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
         'records': selections.entries.map((entry) => {
           'labour_id': entry.key,
           'status': entry.value,
-          if (entry.value == 'present') 'hours': 8,
+          if (entry.value == 'present') 'hours': regularHours,
         }).toList(),
       });
       if (mounted) Navigator.pop(context, true);
@@ -109,6 +122,14 @@ class _LabourBulkMarkState extends State<LabourBulkMark> {
             subtitle: Text('Additional workers require separate page selection; '
               'this form cannot silently mark unseen workers.'),
           )),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: hours,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Hours for all selected present workers (0–24)'),
+            )),
+          const SizedBox(height: 10),
           Expanded(child: ListView.builder(
             itemCount: rows.length,
             itemBuilder: (context, index) {
