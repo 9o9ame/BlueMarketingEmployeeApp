@@ -77,3 +77,9 @@ Testing: unit tests added; no local Flutter SDK available to run tests in GitHub
 - Live API responses, all roles and project membership have not been tested with real accounts.
 - Approval actions and labour attendance can modify real dev data. Test only with approved test accounts.
 - Stock IN/OUT entry submission, finance approval, bulk labour attendance, detailed reports, payroll, notifications and high-fidelity UI remain pending; do not describe the app as production complete.
+
+## Compilation repair after Windows validation — November 3, 2026
+
+User's Windows Flutter checks found 26 analyzer issues, primarily cascading from a malformed CRM follow-up request-map collection-if created by an automated brace rewrite. The source has been corrected to use a valid collection-if with a trailing comma. The one-line CRM confirmation conditional now uses braces, and approval/labour text-concatenation warnings were addressed. Because many errors were cascading, their count is not the number of independent root causes.
+
+Next local gate: `git pull --ff-only origin main`, then `flutter analyze` and `flutter test`. Do not build APK until these pass. Existing saved formatting stash can remain stashed. GitHub connector does not execute the Windows Flutter SDK, so local validation is still required.
