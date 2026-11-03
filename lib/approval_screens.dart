@@ -148,12 +148,12 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) setState(() {
-        => failure = e.toString());
+      if (mounted) {
+        setState(() => failure = e.toString());
       }
     } finally {
-      if (mounted) setState(() {
-        => sending = false);
+      if (mounted) {
+        setState(() => sending = false);
       }
     }
   }
