@@ -4,6 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'biometric_unlock.dart';
 import 'crm_screens.dart';
+import 'stock_screens.dart';
+import 'labour_screens.dart';
+import 'approval_screens.dart';
 
 const apiHost = String.fromEnvironment('API_BASE_URL',
     defaultValue: 'https://dev.bluemarketing.com.pk');
@@ -61,14 +64,14 @@ class ModuleLink {
 const modules = <ModuleLink>[
   ModuleLink('CRM Leads', 'crm/leads', Icons.people_alt_outlined, {'read lead'}),
   ModuleLink('CRM Summary', 'crm/summary', Icons.insights_outlined, {'read lead'}),
-  ModuleLink('Labour', 'attendance/labour', Icons.engineering_outlined, {'read labour'}),
-  ModuleLink('Stock Entries', 'stock/entries', Icons.inventory_2_outlined, {'read stock'}),
-  ModuleLink('Stock Items', 'stock/items', Icons.category_outlined, {'read stock'}),
-  ModuleLink('Stock Report', 'stock/report', Icons.bar_chart_outlined, {'read stock'}),
+  ModuleLink('Labour', 'attendance/labour', Icons.engineering_outlined, {'read labour', 'read attendance'}),
+  ModuleLink('Stock Workspace', 'stock/entries', Icons.inventory_2_outlined, {'read stock', 'view inventory'}),
+  ModuleLink('Stock Items', 'stock/items', Icons.category_outlined, {'read stock', 'view inventory'}),
+  ModuleLink('Stock Report', 'stock/report', Icons.bar_chart_outlined, {'read stock', 'view inventory'}),
   ModuleLink('Project Reports', 'reports/projects', Icons.apartment_outlined, {'read project'}),
   ModuleLink('Inventory Report', 'reports/inventory', Icons.analytics_outlined, {'view inventory'}),
   ModuleLink('Approvals', 'approvals/', Icons.task_alt_outlined,
-      {'can approve', 'read voucher'}, needsProject: false),
+      {'direct-update'}, needsProject: false),
 ];
 
 List<ModuleLink> allowedModules(Set<String> permissions, {bool superadmin = false}) =>
@@ -366,6 +369,24 @@ class HomeScreen extends StatelessWidget {
       )));
       return;
     }
+    final permissions = listOf(profile['permissions']).map((e) => e.toString()).toSet();
+    final roles = listOf(profile['role_names']).map((e) => e.toString()).toSet();
+    if (path.startsWith('stock/') && projectId != null) {
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
+        StockWorkspace(api: api, projectId: projectId!)));
+      return;
+    }
+    if (path == 'attendance/labour' && projectId != null) {
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
+        LabourWorkspace(api: api, projectId: projectId!,
+          permissions: permissions, roles: roles)));
+      return;
+    }
+    if (path == 'approvals/' && mayReadApprovals(permissions, roles)) {
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
+        ApprovalWorkspace(api: api, permissions: permissions, roles: roles)));
+      return;
+    }
     Navigator.push(context, MaterialPageRoute<void>(builder: (_) => DataScreen(
       api: api, title: title, path: path, projectId: project ? projectId : null,
     )));
@@ -419,7 +440,7 @@ class HomeScreen extends StatelessWidget {
               builder: (_) => AttendanceScreen(api: api, projectId: projectId))),
         )),
         for (final module in allowedModules(permissions,
-            superadmin: roles.contains('superadmin')))
+            superadmin: roles.contains('superadmin') || roles.contains('super-admin') || roles.contains('admin')))
           Card(child: ListTile(
             leading: Icon(module.icon),
             title: Text(module.title),
