@@ -7,6 +7,7 @@ import 'crm_screens.dart';
 import 'stock_screens.dart';
 import 'labour_screens.dart';
 import 'approval_screens.dart';
+import 'project_reports.dart';
 
 const apiHost = String.fromEnvironment('API_BASE_URL',
     defaultValue: 'https://dev.bluemarketing.com.pk');
@@ -373,13 +374,21 @@ class HomeScreen extends StatelessWidget {
     final roles = listOf(profile['role_names']).map((e) => e.toString()).toSet();
     if (path.startsWith('stock/') && projectId != null) {
       Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
-        StockWorkspace(api: api, projectId: projectId!)));
+        StockWorkspace(api: api, projectId: projectId!,
+          canWrite: permissions.contains('create stock') ||
+              roles.contains('admin') || roles.contains('superadmin'))));
       return;
     }
     if (path == 'attendance/labour' && projectId != null) {
       Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
         LabourWorkspace(api: api, projectId: projectId!,
           permissions: permissions, roles: roles)));
+      return;
+    }
+    if (path == 'reports/projects' && projectId != null) {
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
+        ProjectReportsHome(api: api, projectId: projectId!,
+          permissions: permissions)));
       return;
     }
     if (path == 'approvals/' && mayReadApprovals(permissions, roles)) {
