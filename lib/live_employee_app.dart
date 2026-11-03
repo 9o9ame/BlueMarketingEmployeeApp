@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'biometric_unlock.dart';
+import 'remembered_accounts.dart';
 import 'crm_screens.dart';
 import 'stock_screens.dart';
 import 'labour_screens.dart';
@@ -111,6 +112,8 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
   bool projectChosen = false;
   bool canBiometricLogin = false;
   String? rememberedEmail;
+  List<String> savedAccounts = const [];
+  late final accountVault = RememberedAccounts(tokenStorage);
   final biometric = BiometricUnlock();
   bool _biometricPromptInProgress = false;
   bool _lockOnResume = false;
@@ -200,12 +203,17 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     if (enabled && !await _verifyOnDevice()) {
       throw Exception('Fingerprint or face verification was not completed.');
     }
+    if (!enabled) {
+      // Explicitly disabling biometric login destroys saved login passwords.
+      await accountVault.clearPasswords();
+    }
     await tokenStorage.write(key: biometricFlagKey,
-      value: enabled ? '1' : '0');
+        value: enabled ? '1' : '0');
     if (mounted) {
       setState(() {
         biometricsEnabled = enabled;
-        canBiometricLogin = enabled && api.token != null;
+        canBiometricLogin = enabled && (api.token != null ||
+            savedAccounts.isNotEmpty);
       });
     }
   }
@@ -218,30 +226,73 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
   Future<void> _invalidateExpiredToken() async {
     api.token = null;
     await tokenStorage.delete(key: tokenKey);
-    canBiometricLogin = false;
-    // Deliberately preserve biometricFlagKey until manually disabled.
+    // Keep biometric preference and explicit remembered credentials.
+    canBiometricLogin = biometricsEnabled;
+  }
+
+  Future<void> _loginFromVault(String email) async {
+    // This private method MUST only be called after biometric verification.
+    final password = await accountVault.passwordAfterBiometric(email);
+    if (password == null || password.isEmpty) {
+      throw const FormatException(
+          'No biometric credential stored for this account. Enter its password once.');
+    }
+    final response = await api.call('POST', 'auth/login',
+      data: {'email': email, 'password': password});
+    final data = objectOf(response['data']);
+    final token = data['token']?.toString();
+    if (token == null || token.isEmpty) {
+      throw const FormatException('Login token missing.');
+    }
+    api.token = token;
+    await tokenStorage.write(key: tokenKey, value: token);
+    rememberedEmail = email;
+    await tokenStorage.write(key: rememberedEmailKey, value: email);
+    await accountVault.recordLogin(email);
+    savedAccounts = await accountVault.list();
+    setProfile(data);
   }
 
   Future<void> restore() async {
     try {
       biometricsEnabled =
-        (await tokenStorage.read(key: biometricFlagKey)) == '1';
+          (await tokenStorage.read(key: biometricFlagKey)) == '1';
+      savedAccounts = await accountVault.list();
       rememberedEmail = await tokenStorage.read(key: rememberedEmailKey);
+      rememberedEmail ??= savedAccounts.isEmpty ? null : savedAccounts.first;
       api.token = await tokenStorage.read(key: tokenKey);
-      canBiometricLogin = biometricsEnabled && api.token != null;
+      canBiometricLogin = biometricsEnabled;
       if (api.token != null) {
-        if (!biometricsEnabled || await _verifyOnDevice()) {
-          await _fetchCurrentUser();
+        final allowed = !biometricsEnabled || await _verifyOnDevice();
+        if (allowed) {
+          try {
+            await _fetchCurrentUser();
+          } on ApiRequestException catch (problem) {
+            if (problem.statusCode != 401) rethrow;
+            await _invalidateExpiredToken();
+            if (biometricsEnabled && rememberedEmail != null &&
+                await accountVault.hasPassword(rememberedEmail!)) {
+              // Re-use the biometric check that just succeeded.
+              await _loginFromVault(rememberedEmail!);
+            } else {
+              error = 'Session expired. Please sign in again.';
+            }
+          }
         } else {
-          // Do NOT delete the token or turn off the user's setting.
-          error = 'Unlock cancelled. Tap fingerprint below to try again.';
+          error = 'Unlock cancelled. Tap fingerprint to retry.';
+        }
+      } else if (biometricsEnabled && rememberedEmail != null &&
+          await accountVault.hasPassword(rememberedEmail!)) {
+        // Explicit logout revoked the token, so obtain a NEW token via the
+        // registered auth/login API after checking a stored credential.
+        if (await _verifyOnDevice()) {
+          await _loginFromVault(rememberedEmail!);
+        } else {
+          error = 'Unlock cancelled. Tap fingerprint to retry.';
         }
       }
-    } on ApiRequestException catch (requestError) {
-      if (requestError.statusCode == 401) {
-        await _invalidateExpiredToken();
-      }
-      error = requestError.message;
+    } on ApiRequestException catch (problem) {
+      error = problem.message;
     } catch (_) {
       error = 'Could not restore the session. Sign in or retry fingerprint.';
     } finally {
@@ -251,26 +302,38 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     }
   }
 
-  Future<void> retryBiometric() async {
-    if (!biometricsEnabled || api.token == null) {
+  Future<void> retryBiometric([String? chosenEmail]) async {
+    if (!biometricsEnabled) {
+      setState(() => error =
+        'Enable fingerprint sign-in by choosing Remember for fingerprint at login.');
+      return;
+    }
+    final email = chosenEmail ?? rememberedEmail ??
+        (savedAccounts.isEmpty ? null : savedAccounts.first);
+    if (email == null) {
+      setState(() => error = 'No account saved. Sign in using your password first.');
       return;
     }
     setState(() { loading = true; error = null; });
     try {
       if (!await _verifyOnDevice()) {
         error = 'Fingerprint verification was cancelled or failed.';
+      } else if (api.token != null &&
+          email.toLowerCase() == rememberedEmail?.toLowerCase()) {
+        try {
+          await _fetchCurrentUser();
+        } on ApiRequestException catch (problem) {
+          if (problem.statusCode != 401) rethrow;
+          await _invalidateExpiredToken();
+          await _loginFromVault(email);
+        }
       } else {
-        await _fetchCurrentUser();
+        await _loginFromVault(email);
       }
-    } on ApiRequestException catch (requestError) {
-      if (requestError.statusCode == 401) {
-        await _invalidateExpiredToken();
-        error = 'Session expired. Please sign in with your email and password.';
-      } else {
-        error = requestError.message;
-      }
-    } catch (_) {
-      error = 'Network problem. You can retry fingerprint or sign in.';
+    } on ApiRequestException catch (problem) {
+      error = problem.message;
+    } catch (problem) {
+      error = '$problem';
     } finally {
       if (mounted) {
         setState(() => loading = false);
@@ -278,30 +341,67 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     }
   }
 
+  Future<void> selectSavedAccount(String email) async {
+    // Always show the selected email, even when the password wasn't saved.
+    rememberedEmail = email;
+    if (biometricsEnabled && await accountVault.hasPassword(email)) {
+      await retryBiometric(email);
+    } else if (mounted) {
+      setState(() {
+        error = 'Account selected. Use its password or Android Autofill to sign in.';
+      });
+    }
+  }
+
   Future<void> login(String email, String password) async {
     setState(() { loading = true; error = null; });
     try {
+      final cleanEmail = RememberedAccounts.normalized(email);
       final response = await api.call('POST', 'auth/login',
-        data: {'email': email, 'password': password});
+          data: {'email': cleanEmail, 'password': password});
       final data = objectOf(response['data']);
       final token = data['token']?.toString();
       if (token == null || token.isEmpty) {
-        throw Exception('Login token missing.');
+        throw const FormatException('Login token missing.');
       }
       api.token = token;
       await tokenStorage.write(key: tokenKey, value: token);
-      // Keep email for convenience, never persist a password.
-      await tokenStorage.write(key: rememberedEmailKey, value: email);
-      rememberedEmail = email;
-      // Biometric preference does not get reset during a password sign in.
+      await tokenStorage.write(key: rememberedEmailKey, value: cleanEmail);
+      rememberedEmail = cleanEmail;
+      try {
+        await accountVault.recordLogin(cleanEmail);
+        savedAccounts = await accountVault.list();
+      } catch (_) {
+        // A storage failure must not invalidate a successful server login.
+      }
       canBiometricLogin = biometricsEnabled;
       setProfile(data);
-    } catch (requestError) {
-      error = '$requestError';
+    } catch (problem) {
+      error = '$problem';
     } finally {
       if (mounted) {
         setState(() => loading = false);
       }
+    }
+  }
+
+  Future<void> loginRemembered(String email, String password, bool remember) async {
+    await login(email, password);
+    if (!remember || profile == null) return;
+    // Never save passwords silently: this checkbox requires explicit opt-in,
+    // and a successful device biometric prompt gates the first save.
+    if (!await _verifyOnDevice()) return;
+    try {
+      await accountVault.rememberPassword(email, password);
+      await tokenStorage.write(key: biometricFlagKey, value: '1');
+      if (mounted) {
+        setState(() {
+          biometricsEnabled = true;
+          canBiometricLogin = true;
+        });
+      }
+    } catch (_) {
+      // Login remains successful even if the optional vault write fails.
     }
   }
 
@@ -310,12 +410,11 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     try {
       await api.call('POST', 'auth/logout');
     } catch (_) {
-      // Invalidate the local token even if the server cannot be reached.
+      // Never keep the current server token after explicit logout.
     }
-    await tokenStorage.delete(key: tokenKey);
     api.token = null;
-    canBiometricLogin = false;
-    // Retain user's biometric setting; never disable it automatically.
+    await tokenStorage.delete(key: tokenKey);
+    canBiometricLogin = biometricsEnabled;
     if (mounted) {
       setState(() {
         profile = null;
@@ -377,9 +476,12 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
         ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : profile == null
             ? LoginScreen(onLogin: login, error: error,
+                onLoginRemembered: loginRemembered,
+                savedAccounts: savedAccounts,
+                onSavedAccount: selectSavedAccount,
                 rememberedEmail: rememberedEmail,
-                showFingerprint: canBiometricLogin,
-                onFingerprint: retryBiometric)
+                showFingerprint: true,
+                onFingerprint: () => retryBiometric())
             : !projectChosen
                 ? ProjectSelectionScreen(profile: profile!, onSelect: chooseProject, onLogout: logout)
                 : HomeScreen(
