@@ -76,7 +76,9 @@ class _ProjectReportListState extends State<ProjectReportList> {
   void dispose() { search.dispose(); super.dispose(); }
 
   void reload({bool reset = false}) {
-    if (reset) page = 1;
+    if (reset) {
+      page = 1;
+    }
     final path = 'reports/projects/${widget.projectId}${widget.suffix}';
     current = widget.api.call('GET', path, query: widget.pagination ? {
       'page': '$page', 'per_page': '20',
@@ -86,7 +88,9 @@ class _ProjectReportListState extends State<ProjectReportList> {
       if (from != null) 'date_from': reportDate(from!),
       if (to != null) 'date_to': reportDate(to!),
     } : null);
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> pickRange() async {
