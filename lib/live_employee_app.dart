@@ -318,7 +318,7 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
     try {
       if (!await _verifyOnDevice()) {
         error = 'Fingerprint verification was cancelled or failed.';
-      } else if (api.token != null &&
+      } else if (chosenEmail == null && api.token != null &&
           email.toLowerCase() == rememberedEmail?.toLowerCase()) {
         try {
           await _fetchCurrentUser();
@@ -342,12 +342,13 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> with Widget
   }
 
   Future<void> selectSavedAccount(String email) async {
-    // Always show the selected email, even when the password wasn't saved.
-    rememberedEmail = email;
+    // Use a saved credential only after biometric verification; the chooser
+    // itself never reads or displays a password.
     if (biometricsEnabled && await accountVault.hasPassword(email)) {
       await retryBiometric(email);
     } else if (mounted) {
       setState(() {
+        rememberedEmail = email;
         error = 'Account selected. Use its password or Android Autofill to sign in.';
       });
     }
