@@ -77,7 +77,7 @@ class _ApprovalWorkspaceState extends State<ApprovalWorkspace> {
                     title: Text(approval['table_label']?.toString() ??
                       approval['table']?.toString() ?? 'Approval'),
                     subtitle: Text((approval['summary']?.toString() ?? '') +
-                      '\n' + (approval['status']?.toString() ?? '')),
+                      "\n${approval['status'] ?? ''}"),
                     isThreeLine: true,
                     trailing: const Icon(Icons.chevron_right),
                     onTap: id == null ? null : () async {
@@ -93,7 +93,7 @@ class _ApprovalWorkspaceState extends State<ApprovalWorkspace> {
             Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
               TextButton(onPressed: page > 1 ? () { page--; load(); } : null,
                 child: const Text('Previous')),
-              Text('Page ' + page.toString() + '/' + last.toString()),
+              Text('Page $page/$last'),
               TextButton(onPressed: page < last ? () { page++; load(); } : null,
                 child: const Text('Next')),
             ]),
@@ -122,8 +122,8 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
   @override
   void initState() {
     super.initState();
-    detail = widget.api.call('GET', 'approvals/' + widget.id.toString());
-    preview = widget.api.call('GET', 'approvals/' + widget.id.toString() + '/preview');
+    detail = widget.api.call('GET', 'approvals/${widget.id}');
+    preview = widget.api.call('GET', 'approvals/${widget.id}/preview');
   }
   Future<void> submit(String action) async {
     final yes = await showDialog<bool>(context: context, builder: (ctx) =>
@@ -143,7 +143,7 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
     setState(() { sending = true; failure = null; });
     try {
       await widget.api.call('POST',
-        'approvals/' + widget.id.toString() + '/' + action);
+        'approvals/${widget.id}/$action');
       if (mounted) {
         Navigator.pop(context);
       }
@@ -203,8 +203,7 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
                 for (final change in changes)
                   Card(child: ListTile(
                     title: Text(change['field']?.toString() ?? 'Field'),
-                    subtitle: Text('Before: ' + (change['old']?.toString() ?? '—') +
-                      '\nAfter: ' + (change['new']?.toString() ?? '—')),
+                    subtitle: Text("Before: ${change['old'] ?? '—'}\nAfter: ${change['new'] ?? '—'}"),
                     trailing: change['changed'] == true
                       ? const Icon(Icons.compare_arrows) : null,
                   )),
