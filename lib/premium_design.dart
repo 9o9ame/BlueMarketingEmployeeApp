@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
+import 'task_notifications_screen.dart';
 
 class BmColors {
   static const navy = Color(0xFF122D58);
@@ -312,6 +313,13 @@ class _BmDashboardState extends State<BmDashboard> {
                     const Expanded(child: Text('BlueMarketing',
                       style: TextStyle(color: Colors.white,
                         fontWeight: FontWeight.w800, fontSize: 17))),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).push(
+                        BmSlideRoute<void>(page: const TaskNotificationsScreen())),
+                      tooltip: 'Notifications',
+                      icon: const Icon(Icons.notifications_none_rounded,
+                        color: Colors.white),
+                    ),
                     IconButton(onPressed: settings, tooltip: 'Settings',
                       icon: const Icon(Icons.settings_outlined, color: Colors.white)),
                   ]),
