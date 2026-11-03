@@ -151,6 +151,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
       if (token == null || token.isEmpty) throw Exception('Login token missing.');
       api.token = token;
       await tokenStorage.write(key: tokenKey, value: token);
+      // A different account must explicitly opt in to biometrics again.
+      await tokenStorage.delete(key: biometricFlagKey);
+      biometricsEnabled = false;
       setProfile(data);
     } catch (e) {
       error = e.toString();
