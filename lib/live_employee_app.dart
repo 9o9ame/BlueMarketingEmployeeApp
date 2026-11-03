@@ -526,6 +526,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final form = GlobalKey<FormState>();
   bool obscure = true;
   bool saveForFingerprint = false;
+  bool historySuggested = false;
+
+  void suggestHistory() {
+    if (!historySuggested && widget.savedAccounts.isNotEmpty) {
+      historySuggested = true;
+      chooseAccount();
+    }
+  }
 
   Future<void> chooseAccount() async {
     if (widget.savedAccounts.isEmpty) {
@@ -610,7 +618,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: email,
                     keyboardType: TextInputType.emailAddress,
                     autofillHints: const [AutofillHints.email],
-                    onTap: chooseAccount,
+                    onTap: suggestHistory,
                     decoration: InputDecoration(labelText: 'Work email',
                       prefixIcon: const Icon(Icons.person_outline_rounded),
                       suffixIcon: widget.savedAccounts.isEmpty ? null :
@@ -625,7 +633,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: password, obscureText: obscure,
                     autofillHints: const [AutofillHints.password],
-                    onTap: chooseAccount,
+                    onTap: suggestHistory,
                     decoration: InputDecoration(labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
