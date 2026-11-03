@@ -53,8 +53,12 @@ class _ApprovalWorkspaceState extends State<ApprovalWorkspace> {
       Expanded(child: FutureBuilder<Map<String, dynamic>>(
         future: current,
         builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text(snap.error.toString()));
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          if (snap.hasError) {
+            return Center(child: Text(snap.error.toString()));
+          }
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final approvals = listOf(snap.data!['data']).map(objectOf).toList();
           final meta = objectOf(snap.data!['meta']);
           final last = numberOf(meta['last_page']) ?? 1;
@@ -64,7 +68,9 @@ class _ApprovalWorkspaceState extends State<ApprovalWorkspace> {
               child: ListView.builder(
                 itemCount: approvals.isEmpty ? 1 : approvals.length,
                 itemBuilder: (context, index) {
-                  if (approvals.isEmpty) return const ListTile(title: Text('No approvals.'));
+                  if (approvals.isEmpty) {
+                    return const ListTile(title: Text('No approvals.'));
+                  }
                   final approval = approvals[index];
                   final id = numberOf(approval['id']);
                   return Card(child: ListTile(
@@ -130,16 +136,24 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
             child: const Text('Confirm')),
         ],
       )) ?? false;
-    if (!yes || !mounted) return;
+    if (!yes || !mounted) {
+      return;
+    }
     setState(() { sending = true; failure = null; });
     try {
       await widget.api.call('POST',
         'approvals/' + widget.id.toString() + '/' + action);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
-      if (mounted) setState(() => failure = e.toString());
+      if (mounted) setState(() {
+        => failure = e.toString());
+      }
     } finally {
-      if (mounted) setState(() => sending = false);
+      if (mounted) setState(() {
+        => sending = false);
+      }
     }
   }
   @override
@@ -148,8 +162,12 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
     body: FutureBuilder<Map<String, dynamic>>(
       future: detail,
       builder: (context, snap) {
-        if (snap.hasError) return Center(child: Text(snap.error.toString()));
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (snap.hasError) {
+          return Center(child: Text(snap.error.toString()));
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final approval = objectOf(snap.data!['data']);
         return ListView(padding: const EdgeInsets.all(16), children: [
           Card(child: Padding(padding: const EdgeInsets.all(18),
@@ -169,11 +187,17 @@ class _ApprovalDetailsState extends State<ApprovalDetails> {
           FutureBuilder<Map<String, dynamic>>(
             future: preview,
             builder: (context, snap) {
-              if (snap.hasError) return Text(snap.error.toString());
-              if (!snap.hasData) return const LinearProgressIndicator();
+              if (snap.hasError) {
+                return Text(snap.error.toString());
+              }
+              if (!snap.hasData) {
+                return const LinearProgressIndicator();
+              }
               final changes = listOf(objectOf(snap.data!['data'])['changes'])
                   .map(objectOf).toList();
-              if (changes.isEmpty) return const Text('No changes provided.');
+              if (changes.isEmpty) {
+                return const Text('No changes provided.');
+              }
               return Column(children: [
                 for (final change in changes)
                   Card(child: ListTile(
