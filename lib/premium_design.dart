@@ -263,7 +263,7 @@ class _BmDashboardState extends State<BmDashboard> {
           const Padding(padding: EdgeInsets.all(14),
             child: Text('BlueMarketing · Employee Workspace',
               style: TextStyle(fontSize: 11, color: BmColors.muted))),
-        ]))),
+        ])),
       ),
       bottomNavigationBar: SafeArea(top: false, child: Container(
         padding: const EdgeInsets.fromLTRB(10, 7, 10, 9),
