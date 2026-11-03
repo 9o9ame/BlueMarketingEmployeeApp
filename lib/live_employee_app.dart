@@ -43,7 +43,9 @@ class ApiClient {
     final response = await http.Response.fromStream(
         await client.send(request).timeout(const Duration(seconds: 30)));
     final decoded = jsonDecode(response.body);
-    if (decoded is! Map) throw const FormatException('Invalid API response.');
+    if (decoded is! Map) {
+      throw const FormatException('Invalid API response.');
+    }
     final result = objectOf(decoded);
     if (response.statusCode >= 400 || result['status'] == false) {
       throw Exception(result['message'] ?? 'Request failed');
@@ -116,7 +118,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
   Future<void> chooseProject(int id) async {
     final allowed = listOf(profile?['projects'])
         .map(objectOf).any((project) => numberOf(project['id']) == id);
-    if (!allowed) return;
+    if (!allowed) {
+      return;
+    }
     setState(() { projectId = id; projectChosen = true; });
   }
 
@@ -125,7 +129,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
       throw Exception('Biometric verification failed or is unavailable.');
     }
     await tokenStorage.write(key: biometricFlagKey, value: enable ? '1' : '0');
-    if (mounted) setState(() => biometricsEnabled = enable);
+    if (mounted) {
+      setState(() => biometricsEnabled = enable);
+    }
   }
 
   Future<void> restore() async {
@@ -144,7 +150,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
       await tokenStorage.delete(key: tokenKey);
       // Require email/password again when biometric unlock cannot complete.
     }
-    if (mounted) setState(() => loading = false);
+    if (mounted) {
+      setState(() => loading = false);
+    }
   }
 
   Future<void> login(String email, String password) async {
@@ -154,7 +162,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
           data: {'email': email, 'password': password});
       final data = objectOf(response['data']);
       final token = data['token']?.toString();
-      if (token == null || token.isEmpty) throw Exception('Login token missing.');
+      if (token == null || token.isEmpty) {
+        throw Exception('Login token missing.');
+      }
       api.token = token;
       await tokenStorage.write(key: tokenKey, value: token);
       // A different account must explicitly opt in to biometrics again.
@@ -164,7 +174,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     } catch (e) {
       error = e.toString();
     }
-    if (mounted) setState(() => loading = false);
+    if (mounted) {
+      setState(() => loading = false);
+    }
   }
 
   Future<void> logout() async {
@@ -177,7 +189,15 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
     api.token = null;
     await tokenStorage.delete(key: tokenKey);
     await tokenStorage.delete(key: biometricFlagKey);
-    if (mounted) setState(() { profile = null; projectId = null; projectChosen = false; biometricsEnabled = false; loading = false; });
+    if (mounted) {
+      setState(() {
+        profile = null;
+        projectId = null;
+        projectChosen = false;
+        biometricsEnabled = false;
+        loading = false;
+      });
+    }
   }
 
   @override
@@ -511,10 +531,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void reload() {
     info = widget.api.call('GET', 'attendance/staff/today',
       query: widget.projectId == null ? null : {'project_id': widget.projectId.toString()});
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
   Future<void> punch(String action) async {
-    if (widget.projectId == null) return;
+    if (widget.projectId == null) {
+      return;
+    }
     final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -526,7 +550,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ],
       ),
     );
-    if (yes != true || !mounted) return;
+    if (yes != true || !mounted) {
+      return;
+    }
     setState(() => posting = true);
     try {
       await widget.api.call('POST', 'attendance/staff/$action',
@@ -539,7 +565,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => posting = false);
+      if (mounted) {
+        setState(() => posting = false);
+      }
     }
   }
   @override
@@ -548,8 +576,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     body: FutureBuilder<Map<String, dynamic>>(
       future: info,
       builder: (context, snap) {
-        if (snap.hasError) return ErrorPanel(message: snap.error.toString(), retry: reload);
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (snap.hasError) {
+          return ErrorPanel(message: snap.error.toString(), retry: reload);
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final data = objectOf(snap.data!['data']);
         return ListView(padding: const EdgeInsets.all(20), children: [
           Card(child: Padding(
@@ -610,7 +642,9 @@ class _DataScreenState extends State<DataScreen> {
   void reload() {
     response = widget.api.call('GET', widget.path,
         query: widget.projectId == null ? null : {'project_id': widget.projectId.toString()});
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -621,12 +655,16 @@ class _DataScreenState extends State<DataScreen> {
         if (snapshot.hasError) {
           return ErrorPanel(message: snapshot.error.toString(), retry: reload);
         }
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final data = snapshot.data!['data'];
         final rows = data is List
             ? data
             : objectOf(data).entries.map((e) => {'key': e.key, 'value': e.value}).toList();
-        if (rows.isEmpty) return const Center(child: Text('No records found.'));
+        if (rows.isEmpty) {
+          return const Center(child: Text('No records found.'));
+        }
         return RefreshIndicator(
           onRefresh: () async { reload(); await response; },
           child: ListView.builder(
