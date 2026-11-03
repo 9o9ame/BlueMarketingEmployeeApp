@@ -104,6 +104,8 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
                   final labour = rows[i];
                   final today = objectOf(labour['today_attendance']);
                   return Card(child: ListTile(
+                    leading: CircleAvatar(backgroundColor: BmColors.teal.withValues(alpha: .12),
+                      child: const Icon(Icons.engineering_outlined, color: BmColors.teal)),
                     title: Text(labour['name']?.toString() ?? 'Labour'),
                     subtitle: Text("${labour['role'] ?? ''} · Today: ${today['status'] ?? 'Unmarked'}"),
                     trailing: mayMark ? const Icon(Icons.edit_calendar_outlined) : null,
