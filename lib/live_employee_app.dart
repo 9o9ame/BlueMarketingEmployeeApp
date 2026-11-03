@@ -8,6 +8,7 @@ import 'stock_screens.dart';
 import 'labour_screens.dart';
 import 'approval_screens.dart';
 import 'project_reports.dart';
+import 'dashboard_metrics.dart';
 
 const apiHost = String.fromEnvironment('API_BASE_URL',
     defaultValue: 'https://dev.bluemarketing.com.pk');
@@ -69,8 +70,8 @@ const modules = <ModuleLink>[
   ModuleLink('Stock Workspace', 'stock/entries', Icons.inventory_2_outlined, {'read stock', 'view inventory'}),
   ModuleLink('Stock Items', 'stock/items', Icons.category_outlined, {'read stock', 'view inventory'}),
   ModuleLink('Stock Report', 'stock/report', Icons.bar_chart_outlined, {'read stock', 'view inventory'}),
-  ModuleLink('Project Reports', 'reports/projects', Icons.apartment_outlined, {'read project'}),
-  ModuleLink('Inventory Report', 'reports/inventory', Icons.analytics_outlined, {'view inventory'}),
+  ModuleLink('Project Reports', 'reports/projects', Icons.apartment_outlined, {'read project', 'view project report'}),
+  ModuleLink('Inventory Report', 'reports/inventory', Icons.analytics_outlined, {'view inventory', 'read stock'}),
   ModuleLink('Approvals', 'approvals/', Icons.task_alt_outlined,
       {'direct-update'}, needsProject: false),
 ];
@@ -388,7 +389,7 @@ class HomeScreen extends StatelessWidget {
     if (path == 'reports/projects' && projectId != null) {
       Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
         ProjectReportsHome(api: api, projectId: projectId!,
-          permissions: permissions)));
+          permissions: permissions, roles: roles)));
       return;
     }
     if (path == 'approvals/' && mayReadApprovals(permissions, roles)) {
@@ -439,6 +440,10 @@ class HomeScreen extends StatelessWidget {
             )).toList(),
             onChanged: onProject,
           ),
+        if (projectId != null) ...[
+          const SizedBox(height: 16),
+          EmployeeDashboardMetrics(api: api, projectId: projectId!),
+        ],
         const SizedBox(height: 20),
         const Text('My workspace', style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
         Card(child: ListTile(
