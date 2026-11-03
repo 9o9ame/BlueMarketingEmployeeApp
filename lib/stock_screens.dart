@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
 import 'stock_entry_form.dart';
+import 'premium_design.dart';
 
 class StockWorkspace extends StatelessWidget {
   const StockWorkspace({super.key, required this.api, required this.projectId, required this.canWrite});
@@ -16,7 +17,11 @@ class StockWorkspace extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Stock workspace')),
+    backgroundColor: BmColors.background,
     body: ListView(padding: const EdgeInsets.all(16), children: [
+      const BmModuleHero(title: 'Stock & Inventory',
+        subtitle: 'Inventory catalogue, movements and reports',
+        icon: Icons.inventory_2_rounded, accent: BmColors.purple),
       const Card(child: ListTile(leading: Icon(Icons.info_outline),
         title: Text('Company-wide stock'),
         subtitle: Text('Backend stock balances and movements are global, not per-project.'))),
@@ -88,8 +93,12 @@ class _StockRecordsState extends State<StockRecords> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: BmColors.background,
     appBar: AppBar(title: Text(widget.title)),
     body: Column(children: [
+      BmModuleHero(title: widget.title,
+        subtitle: 'Live records from BlueMarketing inventory',
+        icon: Icons.inventory_2_outlined, accent: BmColors.purple),
       if (isReport) const Card(child: ListTile(
         leading: Icon(Icons.warning_amber_outlined),
         title: Text('Global inventory report'),
