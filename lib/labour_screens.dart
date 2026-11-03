@@ -82,7 +82,7 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
                   return Card(child: ListTile(
                     title: Text(labour['name']?.toString() ?? 'Labour'),
                     subtitle: Text((labour['role']?.toString() ?? '') +
-                      ' · Today: ' + (today['status']?.toString() ?? 'Unmarked')),
+                      " · Today: ${today['status'] ?? 'Unmarked'}"),
                     trailing: mayMark ? const Icon(Icons.edit_calendar_outlined) : null,
                     onTap: mayMark && numberOf(labour['id']) != null
                       ? () async {
@@ -104,7 +104,7 @@ class _LabourWorkspaceState extends State<LabourWorkspace> {
             Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
               TextButton(onPressed: page > 1 ? () { page--; load(); } : null,
                 child: const Text('Previous')),
-              Text('Page ' + page.toString() + '/' + last.toString()),
+              Text('Page $page/$last'),
               TextButton(onPressed: page < last ? () { page++; load(); } : null,
                 child: const Text('Next')),
             ]),
@@ -141,9 +141,7 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
   String? error;
   @override
   void dispose() { hours.dispose(); notes.dispose(); super.dispose(); }
-  String get dateValue => date.year.toString() + '-' +
-    date.month.toString().padLeft(2, '0') + '-' +
-    date.day.toString().padLeft(2, '0');
+  String get dateValue => "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
   Future<void> submit() async {
     final duration = double.tryParse(hours.text);
@@ -155,8 +153,7 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
     final confirmed = await showDialog<bool>(context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm attendance'),
-        content: Text('Record ' + status + ' for ' + widget.name +
-          ' on ' + dateValue + '? This changes live attendance.'),
+        content: Text('Record $status for ${widget.name} on $dateValue? This changes live attendance.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel')),
@@ -195,7 +192,7 @@ class _LabourMarkScreenState extends State<LabourMarkScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Mark ' + widget.name)),
+    appBar: AppBar(title: Text('Mark ${widget.name}')),
     body: ListView(padding: const EdgeInsets.all(18), children: [
       if (widget.existing) const Card(child: ListTile(
         leading: Icon(Icons.warning_amber_outlined),
@@ -259,7 +256,7 @@ class LabourReportScreen extends StatelessWidget {
           for (final item in rows)
             Card(child: ListTile(
               title: Text(item['labour_name']?.toString() ?? 'Labour'),
-              subtitle: Text('Present days: ' + (item['present_days']?.toString() ?? '—')),
+              subtitle: Text("Present days: ${item['present_days'] ?? '—'}"),
               trailing: Text(item['total_amount']?.toString() ?? '—'),
             )),
         ]);
