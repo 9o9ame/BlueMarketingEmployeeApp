@@ -60,3 +60,20 @@ API dependencies: GET crm/leads, GET crm/leads/{id}, POST crm/leads, PUT crm/lea
 Not included: lead assignment (server requires a valid assignable user and privilege checks), status selection (canonical statuses not confirmed), booking writes, finance/stock writes.
 
 Testing: unit tests added; no local Flutter SDK available to run tests in GitHub tool environment. Run `flutter analyze` and `flutter test` locally before APK build. No claim of production API end-to-end test.
+
+## Consolidated mobile batch — November 3, 2026
+
+- Fixed CRM `curly_braces_in_flow_control_structures` issues and repaired setState callback formatting after static inspection.
+- Added `lib/stock_screens.dart`: stock catalogue/parties, movement search, IN/OUT filters, pagination, entry detail and aggregate report. **Backend stock balances remain global**, even when access is checked via project_id.
+- Added `lib/labour_screens.dart`: labour search, active/inactive filter, attendance summary, single-worker present/absent marking with confirmation and hours validation, labour attendance report. Backend write permissions and duplicate checks remain authoritative.
+- Added `lib/approval_screens.dart`: pending/approved/rejected lists, paginated records, approval detail, before/after field preview and approve/reject with explicit review acknowledgement. Read privilege = `direct-update` or admin/superadmin role. Write privilege = `direct-update` or superadmin role, per controller. Backend must validate every action.
+- Wired new screens to the Flutter dashboard, retained existing CRM and auth flows.
+- Added approval privilege regression tests and aligned existing `direct-update` permission test.
+- **No Flutter SDK/device tests executed here**: run local `flutter analyze` and `flutter test` before the next APK build.
+
+### Release blockers / limitations
+
+- Native Android/pubspeс files exist only on user's PC; dependencies were added locally and main Android biometric setup was executed there.
+- Live API responses, all roles and project membership have not been tested with real accounts.
+- Approval actions and labour attendance can modify real dev data. Test only with approved test accounts.
+- Stock IN/OUT entry submission, finance approval, bulk labour attendance, detailed reports, payroll, notifications and high-fidelity UI remain pending; do not describe the app as production complete.
