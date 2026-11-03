@@ -30,6 +30,8 @@ void main() {
     await tester.tap(find.text('Run read-only checks'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Connected · 4 total records'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('CRM leads'), 150);
+    await tester.pump();
     expect(find.textContaining('HTTP 403'), findsOneWidget);
     expect(called, isNotEmpty);
     expect(called.every((value) => value.startsWith('GET ')), isTrue);
@@ -51,6 +53,8 @@ void main() {
     )));
     await tester.tap(find.text('Run read-only checks'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Dashboard'), 150);
+    await tester.pump();
     expect(find.textContaining('No selected project'), findsWidgets);
     expect(called.any((path) => path.endsWith('/crm/leads')), isFalse);
     expect(called.any((path) => path.endsWith('/stock/items')), isTrue);
