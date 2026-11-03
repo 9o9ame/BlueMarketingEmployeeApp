@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
 import 'task_notifications_screen.dart';
+import 'api_diagnostics_screen.dart';
 
 class BmColors {
   static const navy = Color(0xFF122D58);
@@ -265,6 +266,12 @@ class _BmDashboardState extends State<BmDashboard> {
                 Navigator.pop(context); widget.onModule(item);
               }),
             const Divider(height: 28),
+            _drawerItem(Icons.fact_check_outlined, 'API Diagnostics', () {
+              Navigator.pop(context);
+              Navigator.of(context).push(BmSlideRoute<void>(page:
+                ApiDiagnosticsScreen(
+                  api: widget.api, projectId: widget.projectId)));
+            }),
             _drawerItem(Icons.settings_rounded, 'Settings', () {
               Navigator.pop(context); settings();
             }),
