@@ -23,9 +23,9 @@ List<dynamic> listOf(dynamic raw) => raw is List ? raw : <dynamic>[];
 int? numberOf(dynamic raw) => raw is int ? raw : int.tryParse(raw.toString());
 
 class ApiClient {
-  ApiClient(this.host);
+  ApiClient(this.host, {http.Client? httpClient}) : client = httpClient ?? http.Client();
   final String host;
-  final http.Client client = http.Client();
+  final http.Client client;
   String? token;
   Future<Map<String, dynamic>> call(String method, String endpoint,
       {Map<String, dynamic>? data, Map<String, String>? query}) async {
