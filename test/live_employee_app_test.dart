@@ -21,7 +21,7 @@ void main() {
   });
 
   test('approval visibility requires a server permission', () {
-    expect(allowedModules({'can approve'}).any((m) => m.title == 'Approvals'), isTrue);
+    expect(allowedModules({'direct-update'}).any((m) => m.title == 'Approvals'), isTrue);
     expect(allowedModules({'read lead'}).any((m) => m.title == 'Approvals'), isFalse);
   });
 }
