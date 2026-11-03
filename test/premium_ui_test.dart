@@ -19,6 +19,8 @@ void main() {
       showFingerprint: true,
       onFingerprint: () {},
     )));
+    await tester.ensureVisible(find.byTooltip('Choose recent account'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Choose recent account'));
     await tester.pumpAndSettle();
     final recent = find.text('recent@example.com');
