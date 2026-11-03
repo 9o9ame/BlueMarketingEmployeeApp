@@ -76,8 +76,7 @@ class _ApprovalWorkspaceState extends State<ApprovalWorkspace> {
                   return Card(child: ListTile(
                     title: Text(approval['table_label']?.toString() ??
                       approval['table']?.toString() ?? 'Approval'),
-                    subtitle: Text((approval['summary']?.toString() ?? '') +
-                      "\n${approval['status'] ?? ''}"),
+                    subtitle: Text("${approval['summary'] ?? ''}\n${approval['status'] ?? ''}"),
                     isThreeLine: true,
                     trailing: const Icon(Icons.chevron_right),
                     onTap: id == null ? null : () async {
