@@ -43,3 +43,20 @@ The generated `pubspec.yaml`, platform folders and dependencies should be commit
 - Live API availability and user login have not been confirmed with real credentials. The public dev URL is configured, not verified by authenticated smoke tests.
 - Which Android face biometric types are usable depends on device biometric enrollment and security classification. Android may offer fingerprint only.
 - Detailed role permission labels, project membership and module workflows require a server-connected QA pass; advanced CRM/stock/approvals writes are not complete.
+
+
+## CRM milestone — November 3, 2026
+
+Implemented in standalone Flutter repository:
+- Searchable, status-filtered, paginated CRM leads list.
+- CRM lead detail, masked NIC as returned by server, and activity history.
+- New lead form with first/last name, phone, optional 11-digit mobile number, remarks, follow-up date.
+- Edit lead and record follow-up with explicit user confirmation.
+- Create/update controls require relevant server-issued permission; Laravel retains all authorization.
+- Requests follow exact MobileCrmController endpoint and field names; no hardcoded CRM status IDs or arbitrary user assignments.
+
+API dependencies: GET crm/leads, GET crm/leads/{id}, POST crm/leads, PUT crm/leads/{id}, POST crm/leads/{id}/follow-up, GET crm/leads/{id}/history.
+
+Not included: lead assignment (server requires a valid assignable user and privilege checks), status selection (canonical statuses not confirmed), booking writes, finance/stock writes.
+
+Testing: unit tests added; no local Flutter SDK available to run tests in GitHub tool environment. Run `flutter analyze` and `flutter test` locally before APK build. No claim of production API end-to-end test.
