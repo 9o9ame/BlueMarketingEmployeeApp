@@ -189,7 +189,9 @@ class _BlueMarketingLiveAppState extends State<BlueMarketingLiveApp> {
   }
 
   Future<void> retryBiometric() async {
-    if (!biometricsEnabled || api.token == null) return;
+    if (!biometricsEnabled || api.token == null) {
+      return;
+    }
     setState(() { loading = true; error = null; });
     try {
       if (!await biometric.verify()) {
@@ -645,51 +647,87 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Today attendance')),
+    backgroundColor: BmColors.background,
+    appBar: AppBar(title: const Text('Attendance')),
     body: FutureBuilder<Map<String, dynamic>>(
       future: info,
-      builder: (context, snap) {
-        if (snap.hasError) {
-          return ErrorPanel(message: snap.error.toString(), retry: reload);
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return ErrorPanel(message: snapshot.error.toString(), retry: reload);
         }
-        if (!snap.hasData) {
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final data = objectOf(snap.data!['data']);
-        return ListView(padding: const EdgeInsets.all(20), children: [
-          Card(child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(data['date']?.toString() ?? ''),
-              const SizedBox(height: 8),
-              Text(data['status']?.toString() ?? 'Unknown',
-                  style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 12),
-              Text("Check in: ${data['check_in_time'] ?? '—'}"),
-              Text("Check out: ${data['check_out_time'] ?? '—'}"),
-            ]),
-          )),
-          const SizedBox(height: 14),
-          FilledButton(
-            onPressed: !posting && widget.projectId != null && data['can_check_in'] == true
-                ? () => punch('check-in') : null,
-            child: const Text('Check in'),
-          ),
-          OutlinedButton(
-            onPressed: !posting && widget.projectId != null && data['can_check_out'] == true
-                ? () => punch('check-out') : null,
-            child: const Text('Check out'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
-              builder: (_) => DataScreen(
-                api: widget.api, title: 'Attendance history',
-                path: 'attendance/staff/history', projectId: widget.projectId,
-              ),
-            )),
-            child: const Text('Attendance history'),
-          ),
-        ]);
+        final data = objectOf(snapshot.data!['data']);
+        final checkedIn = data['can_check_in'] == false;
+        return RefreshIndicator(
+          onRefresh: () async { reload(); await info; },
+          child: ListView(children: [
+            const BmModuleHero(title: 'My attendance',
+              subtitle: 'Daily check-in, check-out and your attendance history',
+              icon: Icons.access_time_rounded, accent: BmColors.teal),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(children: [
+                BmSoftCard(child: Column(children: [
+                  CircleAvatar(radius: 31, backgroundColor:
+                    BmColors.teal.withValues(alpha: .12),
+                    child: Icon(checkedIn ? Icons.verified_rounded :
+                      Icons.schedule_rounded, color: BmColors.teal, size: 35)),
+                  const SizedBox(height: 11),
+                  Text(data['status']?.toString() ?? 'Attendance status',
+                    style: const TextStyle(color: BmColors.navy, fontSize: 23,
+                      fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 9),
+                  Text(data['date']?.toString() ?? '',
+                    style: const TextStyle(color: BmColors.muted)),
+                ])),
+                const SizedBox(height: 15),
+                Row(children: [
+                  Expanded(child: BmSoftCard(child: Column(children: [
+                    const Icon(Icons.login_rounded, color: BmColors.teal, size: 27),
+                    const SizedBox(height: 7),
+                    const Text('Check in', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    Text("${data['check_in_time'] ?? '—'}",
+                      style: const TextStyle(color: BmColors.muted)),
+                    const SizedBox(height: 10),
+                    FilledButton(onPressed: !posting && widget.projectId != null &&
+                      data['can_check_in'] == true ? () => punch('check-in') : null,
+                      child: const Text('Check in')),
+                  ]))),
+                  const SizedBox(width: 11),
+                  Expanded(child: BmSoftCard(child: Column(children: [
+                    const Icon(Icons.logout_rounded, color: BmColors.purple, size: 27),
+                    const SizedBox(height: 7),
+                    const Text('Check out', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    Text("${data['check_out_time'] ?? '—'}",
+                      style: const TextStyle(color: BmColors.muted)),
+                    const SizedBox(height: 10),
+                    OutlinedButton(onPressed: !posting && widget.projectId != null &&
+                      data['can_check_out'] == true ? () => punch('check-out') : null,
+                      child: const Text('Check out')),
+                  ]))),
+                ]),
+                const SizedBox(height: 22),
+                const Align(alignment: Alignment.centerLeft,
+                  child: Text('Attendance history', style: TextStyle(
+                    fontWeight: FontWeight.w800, color: BmColors.navy, fontSize: 20))),
+                const SizedBox(height: 11),
+                BmSoftCard(child: ListTile(
+                  leading: const Icon(Icons.history_rounded, color: BmColors.blue),
+                  title: const Text('View attendance history'),
+                  subtitle: const Text('Your recorded attendance from the server'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(context, MaterialPageRoute<void>(
+                    builder: (_) => DataScreen(
+                      api: widget.api, title: 'Attendance history',
+                      path: 'attendance/staff/history', projectId: widget.projectId))),
+                )),
+              ]),
+            ),
+          ]),
+        );
       },
     ),
   );
