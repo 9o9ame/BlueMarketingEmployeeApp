@@ -814,10 +814,14 @@ class HomeScreen extends StatelessWidget {
     final permissions = listOf(profile['permissions']).map((e) => e.toString()).toSet();
     final roles = listOf(profile['role_names']).map((e) => e.toString()).toSet();
     if (path.startsWith('stock/') && projectId != null) {
+      final isWorkspace = path == 'stock/entries';
       Navigator.push(context, MaterialPageRoute<void>(builder: (_) =>
-        StockWorkspace(api: api, projectId: projectId!,
-          canWrite: permissions.contains('create stock') ||
-              roles.contains('admin') || roles.contains('superadmin'))));
+        isWorkspace
+          ? StockWorkspace(api: api, projectId: projectId!,
+              canWrite: permissions.contains('create stock') ||
+                  roles.contains('admin') || roles.contains('superadmin'))
+          : StockRecords(api: api, projectId: projectId!,
+              path: path, title: title)));
       return;
     }
     if (path == 'attendance/labour' && projectId != null) {
