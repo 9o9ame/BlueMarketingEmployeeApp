@@ -4,14 +4,29 @@ import 'live_employee_app.dart';
 /// Stock transactions can post accounting ledger entries. A single
 /// confirmation is required; the server validates balances and permissions.
 class StockEntryFormValidation {
-  static String? checkQuantity(String? text) => _StockEntryFormState.checkQuantity(text);
-  static String? checkRate(String? text) => _StockEntryFormState.checkRate(text);
+  static String? checkQuantity(String? text) =>
+      _StockEntryFormState.checkQuantity(text);
 
-  /// Laravel accepts minor currency units as a numeric rate.
-  /// UI input is PKR, stored units are paisa.
+  static String? checkRate(String? text) =>
+      _StockEntryFormState.checkRate(text);
+
+  /// The mobile form accepts rupees. The Laravel API expects paisa.
   static int? rateMinor(String? text) {
     final value = text?.trim() ?? '';
-    if (!RegExp(r'^\d+(\.\d{1,2})?
+    if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(value)) {
+      return null;
+    }
+    final parts = value.split('.');
+    final rupees = int.tryParse(parts.first);
+    if (rupees == null) {
+      return null;
+    }
+    final paisa = parts.length == 1
+        ? 0
+        : int.parse(parts.last.padRight(2, '0'));
+    return rupees * 100 + paisa;
+  }
+}
 
 class StockEntryForm extends StatefulWidget {
   const StockEntryForm({
