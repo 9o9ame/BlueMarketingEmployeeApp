@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'live_employee_app.dart';
+import 'premium_design.dart';
 
 class ProjectReportsHome extends StatelessWidget {
   const ProjectReportsHome({super.key, required this.api,
@@ -21,7 +22,11 @@ class ProjectReportsHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Project reports')),
+    backgroundColor: BmColors.background,
     body: ListView(padding: const EdgeInsets.all(16), children: [
+      const BmModuleHero(title: 'Project reports',
+        subtitle: 'Plots, bookings, recoveries and customers',
+        icon: Icons.query_stats_rounded, accent: BmColors.cyan),
       Card(child: ListTile(
         leading: const Icon(Icons.apartment_outlined),
         title: const Text('Project summary'),
@@ -110,8 +115,12 @@ class _ProjectReportListState extends State<ProjectReportList> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: BmColors.background,
     appBar: AppBar(title: Text(widget.title)),
     body: Column(children: [
+      BmModuleHero(title: widget.title,
+        subtitle: 'Read-only report from the selected project',
+        icon: Icons.analytics_outlined, accent: BmColors.cyan),
       if (hasSearch) Padding(
         padding: const EdgeInsets.all(12),
         child: TextField(
