@@ -75,6 +75,59 @@ class BmPrimaryButton extends StatelessWidget {
   );
 }
 
+
+class BmModuleHero extends StatelessWidget {
+  const BmModuleHero({super.key, required this.title, required this.subtitle,
+    required this.icon, this.accent = BmColors.blue});
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(14, 8, 14, 15),
+    padding: const EdgeInsets.all(21),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(colors: [
+        BmColors.navy, Color.lerp(BmColors.blue, accent, .55)!]),
+      borderRadius: BorderRadius.circular(25),
+      boxShadow: [BoxShadow(color: accent.withValues(alpha: .22),
+        offset: const Offset(0, 10), blurRadius: 22)]),
+    child: Row(children: [
+      Container(width: 57, height: 57, decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(18)),
+        child: Icon(icon, size: 31, color: Colors.white)),
+      const SizedBox(width: 14),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(
+            color: Colors.white, fontWeight: FontWeight.w900, fontSize: 19)),
+          const SizedBox(height: 5),
+          Text(subtitle, maxLines: 3,
+            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ])),
+    ]),
+  );
+}
+
+class BmStatusChip extends StatelessWidget {
+  const BmStatusChip({super.key, required this.label, this.color = BmColors.blue});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(20)),
+    child: Text(label, style: TextStyle(fontSize: 11,
+      fontWeight: FontWeight.w800, color: color)),
+  );
+}
+
 class BmSlideRoute<T> extends PageRouteBuilder<T> {
   BmSlideRoute({required Widget page}) : super(
     transitionDuration: const Duration(milliseconds: 330),
@@ -119,24 +172,34 @@ class _BmDashboardState extends State<BmDashboard> {
   @override
   void didUpdateWidget(covariant BmDashboard old) {
     super.didUpdateWidget(old);
-    if (old.projectId != widget.projectId) reload();
+    if (old.projectId != widget.projectId) {
+      reload();
+    }
   }
   void reload() {
-    if (widget.projectId == null) return;
+    if (widget.projectId == null) {
+      return;
+    }
     summary = widget.api.call('GET', 'dashboard',
       query: {'project_id': widget.projectId.toString()});
     today = widget.api.call('GET', 'attendance/staff/today',
       query: {'project_id': widget.projectId.toString()});
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
   ModuleLink? module(String route) {
     for (final item in widget.modules) {
-      if (item.route == route) return item;
+      if (item.route == route) {
+        return item;
+      }
     }
     return null;
   }
   void open(ModuleLink? target) {
-    if (target != null) widget.onModule(target);
+    if (target != null) {
+      widget.onModule(target);
+    }
   }
   void settings() => Navigator.of(context).push(BmSlideRoute<void>(
     page: BmSettings(enabled: widget.biometricsEnabled,
@@ -486,16 +549,22 @@ class _BmSettingsState extends State<BmSettings> {
   late bool enabled = widget.enabled;
   bool busy = false;
   Future<void> update(bool next) async {
-    if (busy) return;
+    if (busy) {
+      return;
+    }
     setState(() => busy = true);
     try {
       await widget.onChanged(next);
-      if (mounted) setState(() => enabled = next);
+      if (mounted) {
+        setState(() => enabled = next);
+      }
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$error')));
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) {
+        setState(() => busy = false);
+      }
     }
   }
   @override
@@ -531,7 +600,11 @@ class _BmSettingsState extends State<BmSettings> {
 
 String _initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+'));
-  if (parts.isEmpty || parts.first.isEmpty) return 'BM';
-  if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+  if (parts.isEmpty || parts.first.isEmpty) {
+    return 'BM';
+  }
+  if (parts.length == 1) {
+    return parts.first.substring(0, 1).toUpperCase();
+  }
   return ('${parts.first[0]}${parts.last[0]}').toUpperCase();
 }
